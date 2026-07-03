@@ -54,10 +54,10 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
     /**
      * Quotes the costs of a send transaction operation.
      *
-     * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction or an already-signed transaction.
+     * @param {SolanaTransaction} tx - The transaction.
      * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
      */
-    quoteSendTransaction(tx: SolanaTransaction | FullySignedTransaction): Promise<Omit<TransactionResult, "hash">>;
+    quoteSendTransaction(tx: SolanaTransaction): Promise<Omit<TransactionResult, "hash">>;
     /**
      * Quotes the costs of a transfer operation.
      *
@@ -107,19 +107,19 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      * Determines whether a value is an already-signed transaction (as returned by `signTransaction`)
      * rather than an unsigned {@link SolanaTransaction}.
      *
-     * @private
+     * @protected
      * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction to inspect.
      * @returns {boolean} True if the value is a signed transaction.
      */
-    private _isSignedTransaction;
+    protected _isSignedTransaction(tx: SolanaTransaction | FullySignedTransaction): boolean;
     /**
      * Calculates the fee for an already-signed transaction.
      *
-     * @private
+     * @protected
      * @param {FullySignedTransaction} signedTransaction - The signed transaction.
      * @returns {Promise<bigint>} The calculated transaction fee in lamports.
      */
-    private _getSignedTransactionFee;
+    protected _getSignedTransactionFee(signedTransaction: FullySignedTransaction): Promise<bigint>;
     /**
      * Queries the RPC for the fee of a base64-encoded, compiled transaction message.
      *

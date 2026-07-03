@@ -256,17 +256,12 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
   /**
    * Quotes the costs of a send transaction operation.
    *
-   * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction or an already-signed transaction.
+   * @param {SolanaTransaction} tx - The transaction.
    * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
    */
   async quoteSendTransaction (tx) {
     if (!this._rpc) {
       throw new Error('The wallet must be connected to a provider to quote transactions.')
-    }
-
-    if (this._isSignedTransaction(tx)) {
-      const fee = await this._getSignedTransactionFee(tx)
-      return { fee }
     }
 
     const addr = await this.getAddress()
@@ -475,7 +470,7 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    * Determines whether a value is an already-signed transaction (as returned by `signTransaction`)
    * rather than an unsigned {@link SolanaTransaction}.
    *
-   * @private
+   * @protected
    * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction to inspect.
    * @returns {boolean} True if the value is a signed transaction.
    */
@@ -489,7 +484,7 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
   /**
    * Calculates the fee for an already-signed transaction.
    *
-   * @private
+   * @protected
    * @param {FullySignedTransaction} signedTransaction - The signed transaction.
    * @returns {Promise<bigint>} The calculated transaction fee in lamports.
    */

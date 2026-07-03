@@ -1,5 +1,5 @@
 /** @implements {IWalletAccount} */
-export default class WalletAccountSolana extends WalletAccountReadOnlySolana implements IWalletAccount {
+export default class WalletAccountSolana extends WalletAccountReadOnlySolana implements IWalletAccount<FullySignedTransaction> {
     /**
      * Creates a new solana wallet account.
      *
@@ -84,6 +84,13 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
      */
     signTransaction(tx: SolanaTransaction): Promise<FullySignedTransaction>;
+    /**
+     * Quotes the costs of a send transaction operation.
+     *
+     * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction or an already-signed transaction.
+     * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
+     */
+    quoteSendTransaction(tx: SolanaTransaction | FullySignedTransaction): Promise<Omit<TransactionResult, "hash">>;
     /**
      * Sends a transaction.
      *

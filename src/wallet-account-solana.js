@@ -65,7 +65,7 @@ function assertFullHardenedPath (path) {
   }
 }
 
-/** @implements {IWalletAccount} */
+/** @implements {IWalletAccount<FullySignedTransaction>} */
 export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
   /**
    * Creates a new solana wallet account.
@@ -241,6 +241,26 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
     }
 
     return await signTransactionMessageWithSigners(transactionMessage)
+  }
+
+  /**
+   * Quotes the costs of a send transaction operation.
+   *
+   * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction or an already-signed transaction.
+   * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
+   */
+  async quoteSendTransaction (tx) {
+    if (this._isSignedTransaction(tx)) {
+      if (!this._rpc) {
+        throw new Error('The wallet must be connected to a provider to quote transactions.')
+      }
+
+      const fee = await this._getSignedTransactionFee(tx)
+
+      return { fee }
+    }
+
+    return await super.quoteSendTransaction(tx)
   }
 
   /**
