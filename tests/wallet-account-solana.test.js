@@ -630,57 +630,55 @@ describe('WalletAccountSolana', () => {
       })
     })
 
-    describe('Signed Transaction', () => {
-      it('should broadcast an already-signed transaction directly', async () => {
-        mockRpc.getFeeForMessage.mockReturnValue({
-          send: jest.fn().mockResolvedValue({ value: 5000 })
-        })
-        mockRpc.sendTransaction.mockReturnValue({
-          send: jest.fn().mockResolvedValue('signed-tx-signature')
-        })
-
-        account._rpc = mockRpc
-
-        const signedTx = await buildSignedTransaction(account, {
-          to: '9CXtfmGEtfjmtPKnq2QZcRzCiMzE9T8NQfRicJZetvk2',
-          value: 1000000n
-        })
-
-        const result = await account.sendTransaction(signedTx)
-
-        expect(result.hash).toBe('signed-tx-signature')
-        expect(result.fee).toBe(5000n)
-        expect(mockRpc.sendTransaction).toHaveBeenCalled()
+    it('should broadcast an already-signed transaction', async () => {
+      mockRpc.getFeeForMessage.mockReturnValue({
+        send: jest.fn().mockResolvedValue({ value: 5000 })
+      })
+      mockRpc.sendTransaction.mockReturnValue({
+        send: jest.fn().mockResolvedValue('signed-tx-signature')
       })
 
-      it('should throw if a signed transaction fee exceeds the transaction max fee configuration', async () => {
-        mockRpc.getFeeForMessage.mockReturnValue({
-          send: jest.fn().mockResolvedValue({ value: 5000 })
-        })
-        mockRpc.sendTransaction.mockReturnValue({
-          send: jest.fn().mockResolvedValue('sig')
-        })
+      account._rpc = mockRpc
 
-        account._rpc = mockRpc
-
-        const signedTx = await buildSignedTransaction(account, {
-          to: '9CXtfmGEtfjmtPKnq2QZcRzCiMzE9T8NQfRicJZetvk2',
-          value: 1000000n
-        })
-
-        const limitedWallet = new WalletManagerSolana(TEST_SEED_PHRASE, {
-          provider: TEST_RPC_URL,
-          commitment: 'confirmed',
-          transactionMaxFee: 0n
-        })
-        const limitedAccount = await limitedWallet.getAccount(0)
-
-        limitedAccount._rpc = mockRpc
-
-        await expect(
-          limitedAccount.sendTransaction(signedTx)
-        ).rejects.toThrow('Exceeded maximum fee cost for transaction operation.')
+      const signedTx = await buildSignedTransaction(account, {
+        to: '9CXtfmGEtfjmtPKnq2QZcRzCiMzE9T8NQfRicJZetvk2',
+        value: 1000000n
       })
+
+      const result = await account.sendTransaction(signedTx)
+
+      expect(result.hash).toBe('signed-tx-signature')
+      expect(result.fee).toBe(5000n)
+      expect(mockRpc.sendTransaction).toHaveBeenCalled()
+    })
+
+    it('should throw if a signed transaction fee exceeds the transaction max fee configuration', async () => {
+      mockRpc.getFeeForMessage.mockReturnValue({
+        send: jest.fn().mockResolvedValue({ value: 5000 })
+      })
+      mockRpc.sendTransaction.mockReturnValue({
+        send: jest.fn().mockResolvedValue('sig')
+      })
+
+      account._rpc = mockRpc
+
+      const signedTx = await buildSignedTransaction(account, {
+        to: '9CXtfmGEtfjmtPKnq2QZcRzCiMzE9T8NQfRicJZetvk2',
+        value: 1000000n
+      })
+
+      const limitedWallet = new WalletManagerSolana(TEST_SEED_PHRASE, {
+        provider: TEST_RPC_URL,
+        commitment: 'confirmed',
+        transactionMaxFee: 0n
+      })
+      const limitedAccount = await limitedWallet.getAccount(0)
+
+      limitedAccount._rpc = mockRpc
+
+      await expect(
+        limitedAccount.sendTransaction(signedTx)
+      ).rejects.toThrow('Exceeded maximum fee cost for transaction operation.')
     })
   })
 
@@ -710,7 +708,7 @@ describe('WalletAccountSolana', () => {
       account._rpc = originalRpc
     })
 
-    it('should quote a signed transaction to the same fee as its unsigned form', async () => {
+    it('should quote an already-signed transaction without broadcasting', async () => {
       mockRpc.getFeeForMessage.mockReturnValue({
         send: jest.fn().mockResolvedValue({ value: 5000 })
       })
