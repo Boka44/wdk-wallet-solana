@@ -22,6 +22,7 @@ import {
 import { getBase64EncodedWireTransaction } from '@solana/transactions'
 import { signBytes } from '@solana/keys'
 import { getAddressDecoder } from '@solana/addresses'
+import { getBase64Decoder } from '@solana/codecs'
 
 import HDKey from 'micro-key-producer/slip10.js'
 
@@ -314,6 +315,34 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
   async _broadcastSignedTransaction (signedTransaction) {
     const encodedTransaction = getBase64EncodedWireTransaction(signedTransaction)
     return await this._rpc.sendTransaction(encodedTransaction, { encoding: 'base64' }).send()
+  }
+
+  /**
+   * Determines whether a value is an already-signed transaction (as returned by `signTransaction`)
+   * rather than an unsigned {@link SolanaTransaction}.
+   *
+   * @protected
+   * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction to inspect.
+   * @returns {boolean} True if the value is a signed transaction.
+   */
+  _isSignedTransaction (tx) {
+    return tx !== null &&
+      typeof tx === 'object' &&
+      tx.messageBytes !== undefined &&
+      tx.signatures !== undefined
+  }
+
+  /**
+   * Calculates the fee for an already-signed transaction.
+   *
+   * @protected
+   * @param {FullySignedTransaction} signedTransaction - The signed transaction.
+   * @returns {Promise<bigint>} The calculated transaction fee in lamports.
+   */
+  async _getSignedTransactionFee (signedTransaction) {
+    const base64EncodedMessage = getBase64Decoder().decode(signedTransaction.messageBytes)
+
+    return await this._getFeeForBase64Message(base64EncodedMessage)
   }
 
   /** @private */

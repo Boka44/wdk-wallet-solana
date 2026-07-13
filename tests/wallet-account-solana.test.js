@@ -25,6 +25,7 @@ import {
 } from '@jest/globals'
 import { getCompiledTransactionMessageDecoder } from '@solana/transaction-messages'
 import { signTransactionMessageWithSigners } from '@solana/signers'
+import { getBase64EncodedWireTransaction } from '@solana/transactions'
 import WalletManagerSolana from '../src/wallet-manager-solana.js'
 import WalletAccountSolana from '../src/wallet-account-solana.js'
 import WalletAccountReadOnlySolana from '../src/wallet-account-read-only-solana.js'
@@ -649,7 +650,10 @@ describe('WalletAccountSolana', () => {
 
       expect(result.hash).toBe('signed-tx-signature')
       expect(result.fee).toBe(5000n)
-      expect(mockRpc.sendTransaction).toHaveBeenCalled()
+      expect(mockRpc.sendTransaction).toHaveBeenCalledWith(
+        getBase64EncodedWireTransaction(signedTx),
+        { encoding: 'base64' }
+      )
     })
 
     it('should throw if a signed transaction fee exceeds the transaction max fee configuration', async () => {

@@ -104,30 +104,13 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      */
     protected _getTransactionFee(transactionMessage: TransactionMessage): Promise<bigint>;
     /**
-     * Determines whether a value is an already-signed transaction (as returned by `signTransaction`)
-     * rather than an unsigned {@link SolanaTransaction}.
-     *
-     * @protected
-     * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction to inspect.
-     * @returns {boolean} True if the value is a signed transaction.
-     */
-    protected _isSignedTransaction(tx: SolanaTransaction | FullySignedTransaction): boolean;
-    /**
-     * Calculates the fee for an already-signed transaction.
-     *
-     * @protected
-     * @param {FullySignedTransaction} signedTransaction - The signed transaction.
-     * @returns {Promise<bigint>} The calculated transaction fee in lamports.
-     */
-    protected _getSignedTransactionFee(signedTransaction: FullySignedTransaction): Promise<bigint>;
-    /**
      * Queries the RPC for the fee of a base64-encoded, compiled transaction message.
      *
-     * @private
+     * @protected
      * @param {string} base64EncodedMessage - The base64-encoded compiled transaction message.
      * @returns {Promise<bigint>} The calculated transaction fee in lamports.
      */
-    private _getFeeForBase64Message;
+    protected _getFeeForBase64Message(base64EncodedMessage: string): Promise<bigint>;
     /**
      * Verifies a message's signature.
      *

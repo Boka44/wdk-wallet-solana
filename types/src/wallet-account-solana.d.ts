@@ -101,6 +101,23 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
     sendTransaction(tx: SolanaTransaction | FullySignedTransaction): Promise<TransactionResult>;
     /** @private */
     private _broadcastSignedTransaction;
+    /**
+     * Determines whether a value is an already-signed transaction (as returned by `signTransaction`)
+     * rather than an unsigned {@link SolanaTransaction}.
+     *
+     * @protected
+     * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction to inspect.
+     * @returns {boolean} True if the value is a signed transaction.
+     */
+    protected _isSignedTransaction(tx: SolanaTransaction | FullySignedTransaction): boolean;
+    /**
+     * Calculates the fee for an already-signed transaction.
+     *
+     * @protected
+     * @param {FullySignedTransaction} signedTransaction - The signed transaction.
+     * @returns {Promise<bigint>} The calculated transaction fee in lamports.
+     */
+    protected _getSignedTransactionFee(signedTransaction: FullySignedTransaction): Promise<bigint>;
     /** @private */
     private _prepareTransactionMessage;
     /**
