@@ -512,6 +512,86 @@ describe('WalletAccountSolana', () => {
       })
     })
 
+    describe('Serialized Transaction Format', () => {
+      // Builds an unsigned base64-encoded serialized transaction with the
+      // given account as the fee payer, using the Solana SDK directly.
+      async function buildSerializedTransaction (account, tx) {
+        const address = await account.getAddress()
+        const { messageBytes } = await buildSignedTransaction(account, tx)
+
+        return getBase64EncodedWireTransaction({
+          messageBytes,
+          signatures: { [address]: null }
+        })
+      }
+
+      const TX = {
+        to: '9CXtfmGEtfjmtPKnq2QZcRzCiMzE9T8NQfRicJZetvk2',
+        value: 1000000n
+      }
+
+      beforeEach(() => {
+        mockRpc.getFeeForMessage.mockReturnValue({
+          send: jest.fn().mockResolvedValue({ value: 5000 })
+        })
+        mockRpc.sendTransaction.mockReturnValue({
+          send: jest.fn().mockResolvedValue('mock-sig')
+        })
+
+        account._rpc = mockRpc
+      })
+
+      it('should sign and broadcast a base64-encoded serialized transaction', async () => {
+        const serialized = await buildSerializedTransaction(account, TX)
+        const expected = getBase64EncodedWireTransaction(
+          await buildSignedTransaction(account, TX)
+        )
+
+        const result = await account.sendTransaction(serialized, {
+          skipConfirmation: true
+        })
+
+        expect(result.hash).toBe('mock-sig')
+        expect(result.fee).toBe(5000n)
+        expect(mockRpc.sendTransaction).toHaveBeenCalledWith(expected, {
+          encoding: 'base64'
+        })
+      })
+
+      it('should sign a base64-encoded serialized transaction without broadcasting', async () => {
+        const serialized = await buildSerializedTransaction(account, TX)
+        const expected = getBase64EncodedWireTransaction(
+          await buildSignedTransaction(account, TX)
+        )
+
+        const signedTransaction = await account.signTransaction(serialized)
+
+        expect(getBase64EncodedWireTransaction(signedTransaction)).toBe(expected)
+        expect(mockRpc.sendTransaction).not.toHaveBeenCalled()
+      })
+
+      it('should quote a base64-encoded serialized transaction without broadcasting', async () => {
+        const serialized = await buildSerializedTransaction(account, TX)
+
+        const { fee } = await account.quoteSendTransaction(serialized)
+
+        expect(fee).toBe(5000n)
+        expect(mockRpc.sendTransaction).not.toHaveBeenCalled()
+      })
+
+      it('should throw if the serialized transaction fee payer does not match the account', async () => {
+        const otherAccount = await wallet.getAccount(1)
+        otherAccount._rpc = mockRpc
+
+        const serialized = await buildSerializedTransaction(otherAccount, TX)
+
+        await expect(account.sendTransaction(serialized)).rejects.toThrow(
+          'does not match wallet address'
+        )
+        expect(mockRpc.sendTransaction).not.toHaveBeenCalled()
+      })
+    })
+
     describe('Fee Estimation', () => {
       it('should estimate and return transaction fee', async () => {
         mockRpc.getFeeForMessage.mockReturnValue({
