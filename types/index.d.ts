@@ -8,5 +8,6 @@ export type TransferOptions = import("@tetherto/wdk-wallet").TransferOptions;
 export type TransferResult = import("@tetherto/wdk-wallet").TransferResult;
 export type SimpleSolanaTransaction = import("./src/wallet-account-read-only-solana.js").SimpleSolanaTransaction;
 export type SolanaTransactionReceipt = import("./src/wallet-account-read-only-solana.js").SolanaTransactionReceipt;
+export type SolanaTransactionInfo = import("./src/wallet-account-read-only-solana.js").SolanaTransactionInfo;
 export type SolanaTransaction = import("./src/wallet-account-solana.js").SolanaTransaction;
 export type SolanaWalletConfig = import("./src/wallet-account-solana.js").SolanaWalletConfig;

@@ -45,12 +45,22 @@ import { isSignature, verifySignature } from '@solana/keys'
 /** @typedef {import('@tetherto/wdk-wallet').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet').TransferOptions} TransferOptions */
 /** @typedef {import('@tetherto/wdk-wallet').TransferResult} TransferResult */
+/** @typedef {import('@tetherto/wdk-wallet').TransactionReceipt} TransactionReceipt */
 
 /** @typedef {import('@solana/transaction-messages').TransactionMessage} TransactionMessage */
 /** @typedef {import('@solana/transactions').FullySignedTransaction} FullySignedTransaction */
 /** @typedef {ReturnType<typeof import('@solana/rpc').createSolanaRpc>} SolanaRpc */
 /** @typedef {ReturnType<import('@solana/rpc-api').SolanaRpcApi['getTransaction']>} SolanaTransactionReceipt */
 /** @typedef {import('@solana/rpc-types').Commitment} Commitment */
+
+/**
+ * A normalized Solana transaction receipt, extended with the confirmation count and the native transaction object.
+ *
+ * @typedef {TransactionReceipt & {
+ *   confirmations: number | null,
+ *   transaction: SolanaTransactionReceipt | null
+ * }} SolanaTransactionInfo
+ */
 
 /**
  * @typedef {Object} SimpleSolanaTransaction
@@ -305,6 +315,7 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
   /**
    * Retrieves a transaction receipt by its signature
    *
+   * @deprecated Use {@link getTransaction} instead, which returns a normalized, finality-based receipt. The raw transaction remains available on its `transaction` property.
    * @param {string} hash - The transaction's hash.
    * @returns {Promise<SolanaTransactionReceipt | null>} — The receipt, or null if the transaction has not been included in a block yet.
    */
@@ -325,6 +336,64 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
       .send()
 
     return transaction
+  }
+
+  /**
+   * Returns a normalized, finality-based receipt for a transaction.
+   *
+   * @param {string} hash - The transaction's signature.
+   * @returns {Promise<SolanaTransactionInfo | null>} The normalized receipt, or null if the transaction is not known.
+   */
+  async getTransaction (hash) {
+    if (!this._rpc) {
+      throw new Error('The wallet must be connected to a provider to fetch transactions.')
+    }
+    if (!isSignature(hash)) {
+      throw new Error('Invalid signature.')
+    }
+
+    const { value: [status] } = await this._rpc
+      .getSignatureStatuses([hash], { searchTransactionHistory: true })
+      .send()
+
+    if (!status) {
+      return null
+    }
+
+    const settled = status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized'
+    const finality = status.confirmationStatus === 'finalized'
+      ? 'final'
+      : settled ? 'confirmed' : 'pending'
+
+    const transaction = settled
+      ? await this._rpc
+        .getTransaction(hash, {
+          commitment: this._commitment,
+          maxSupportedTransactionVersion: 0,
+          encoding: 'json'
+        })
+        .send()
+      : null
+
+    return {
+      id: hash,
+      finality,
+      success: settled ? status.err === null : null,
+      blockRef: Number(status.slot),
+      fee: transaction?.meta ? BigInt(transaction.meta.fee) : undefined,
+      confirmations: status.confirmations == null ? null : Number(status.confirmations),
+      transaction
+    }
+  }
+
+  /** @protected @type {number} */
+  get _defaultWaitInterval () {
+    return 1000
+  }
+
+  /** @protected @type {number} */
+  get _defaultWaitTimeout () {
+    return 60000
   }
 
   /**
