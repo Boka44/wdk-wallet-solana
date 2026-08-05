@@ -378,8 +378,8 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
     return {
       id: hash,
       finality,
-      success: settled ? status.err === null : null,
-      blockRef: Number(status.slot),
+      success: settled ? status.err === null : undefined,
+      block: Number(status.slot),
       fee: transaction?.meta ? BigInt(transaction.meta.fee) : undefined,
       confirmations: status.confirmations == null ? null : Number(status.confirmations),
       transaction

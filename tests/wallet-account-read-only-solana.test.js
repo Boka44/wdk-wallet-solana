@@ -1165,8 +1165,8 @@ describe('WalletAccountReadOnlySolana', () => {
       expect(info).toMatchObject({
         id: MOCK_TX_SIGNATURE,
         finality: 'pending',
-        success: null,
-        blockRef: 100,
+        success: undefined,
+        block: 100,
         confirmations: 1,
         transaction: null
       })
@@ -1183,7 +1183,7 @@ describe('WalletAccountReadOnlySolana', () => {
       expect(info).toMatchObject({
         finality: 'confirmed',
         success: true,
-        blockRef: 200,
+        block: 200,
         fee: 5000n,
         confirmations: 10
       })
