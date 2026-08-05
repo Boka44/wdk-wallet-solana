@@ -1163,7 +1163,7 @@ describe('WalletAccountReadOnlySolana', () => {
       const info = await readOnlyAccount.getTransaction(MOCK_TX_SIGNATURE)
 
       expect(info).toMatchObject({
-        id: MOCK_TX_SIGNATURE,
+        hash: MOCK_TX_SIGNATURE,
         finality: 'pending',
         success: undefined,
         block: 100,
