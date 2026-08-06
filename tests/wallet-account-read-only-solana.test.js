@@ -25,6 +25,7 @@ import {
 } from '@solana-program/token'
 
 import WalletAccountReadOnlySolana from '../src/wallet-account-read-only-solana.js'
+import { NoSuchElementError, ValueError } from '@tetherto/wdk-wallet'
 import WalletAccountSolana from '../src/wallet-account-solana.js'
 
 const TEST_ADDRESS = 'HmWPZeFgxZAJQYgwh5ipYwjbVTHtjEHB3dnJ5xcQBHX9'
@@ -1148,12 +1149,10 @@ describe('WalletAccountReadOnlySolana', () => {
       })
     }
 
-    it('should return null when the transaction is not known', async () => {
+    it('should throw NoSuchElementError when the transaction is not known', async () => {
       mockStatus(null)
 
-      const info = await readOnlyAccount.getTransaction(MOCK_TX_SIGNATURE)
-
-      expect(info).toBeNull()
+      await expect(readOnlyAccount.getTransaction(MOCK_TX_SIGNATURE)).rejects.toThrow(NoSuchElementError)
       expect(mockRpc.getTransaction).not.toHaveBeenCalled()
     })
 
@@ -1235,8 +1234,8 @@ describe('WalletAccountReadOnlySolana', () => {
       )
     })
 
-    it('should throw error for invalid signature format', async () => {
-      await expect(readOnlyAccount.getTransaction('invalid-signature')).rejects.toThrow()
+    it('should throw ValueError for invalid signature format', async () => {
+      await expect(readOnlyAccount.getTransaction('invalid-signature')).rejects.toThrow(ValueError)
     })
   })
 

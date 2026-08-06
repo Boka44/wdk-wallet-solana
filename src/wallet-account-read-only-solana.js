@@ -14,7 +14,7 @@
 
 'use strict'
 
-import { WalletAccountReadOnly } from '@tetherto/wdk-wallet'
+import { WalletAccountReadOnly, NoSuchElementError, ValueError } from '@tetherto/wdk-wallet'
 
 import FailoverProvider from '@tetherto/wdk-failover-provider'
 
@@ -342,14 +342,16 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    * Returns a normalized, finality-based receipt for a transaction.
    *
    * @param {string} hash - The transaction's signature.
-   * @returns {Promise<SolanaTransactionInfo | null>} The normalized receipt, or null if the transaction is not known.
+   * @returns {Promise<SolanaTransactionInfo>} The normalized receipt.
+   * @throws {ValueError} If the hash is not a valid signature.
+   * @throws {NoSuchElementError} If no transaction has been found for the given hash.
    */
   async getTransaction (hash) {
     if (!this._rpc) {
       throw new Error('The wallet must be connected to a provider to fetch transactions.')
     }
     if (!isSignature(hash)) {
-      throw new Error('Invalid signature.')
+      throw new ValueError('Invalid signature.')
     }
 
     const { value: [status] } = await this._rpc
@@ -357,7 +359,7 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
       .send()
 
     if (!status) {
-      return null
+      throw new NoSuchElementError(`No transaction found for '${hash}'.`)
     }
 
     const settled = status.confirmationStatus === 'confirmed' || status.confirmationStatus === 'finalized'
