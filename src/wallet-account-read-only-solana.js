@@ -388,16 +388,6 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
     }
   }
 
-  /** @protected @type {number} */
-  get _defaultWaitInterval () {
-    return 1000
-  }
-
-  /** @protected @type {number} */
-  get _defaultWaitTimeout () {
-    return 60000
-  }
-
   /**
    * Builds a transaction message for SPL token transfer.
    * Creates instructions for ATA creation (if needed) and token transfer.

@@ -82,10 +82,6 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      * @throws {NoSuchElementError} If no transaction has been found for the given hash.
      */
     getTransaction(hash: string): Promise<SolanaTransactionInfo>;
-    /** @protected @type {number} */
-    protected get _defaultWaitInterval(): number;
-    /** @protected @type {number} */
-    protected get _defaultWaitTimeout(): number;
     /**
      * Builds a transaction message for SPL token transfer.
      * Creates instructions for ATA creation (if needed) and token transfer.
