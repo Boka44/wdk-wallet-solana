@@ -77,11 +77,20 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      * Returns a normalized, finality-based receipt for a transaction.
      *
      * @param {string} hash - The transaction's signature.
-     * @returns {Promise<SolanaTransactionInfo>} The normalized receipt.
+     * @returns {Promise<TransactionReceipt & SolanaTransactionDetails>} The normalized receipt.
      * @throws {ValueError} If the hash is not a valid signature.
      * @throws {NoSuchElementError} If no transaction has been found for the given hash.
      */
-    getTransaction(hash: string): Promise<SolanaTransactionInfo>;
+    getTransaction(hash: string): Promise<TransactionReceipt & SolanaTransactionDetails>;
+    /**
+     * Blocks until a transaction reaches a terminal state (the requested finality target or `dropped`), or times out.
+     *
+     * @param {string} hash - The transaction's signature.
+     * @param {WaitForTransactionOptions} [options] - The wait options.
+     * @returns {Promise<TransactionReceipt & SolanaTransactionDetails>} The terminal receipt: the finality target reached (inspect `success` to tell success from revert), or `dropped`.
+     * @throws {TimeoutError} If the target is not reached before the timeout.
+     */
+    waitForTransaction(hash: string, options?: WaitForTransactionOptions): Promise<TransactionReceipt & SolanaTransactionDetails>;
     /**
      * Builds a transaction message for SPL token transfer.
      * Creates instructions for ATA creation (if needed) and token transfer.
@@ -151,16 +160,23 @@ export type TransactionResult = import("@tetherto/wdk-wallet").TransactionResult
 export type TransferOptions = import("@tetherto/wdk-wallet").TransferOptions;
 export type TransferResult = import("@tetherto/wdk-wallet").TransferResult;
 export type TransactionReceipt = import("@tetherto/wdk-wallet").TransactionReceipt;
+export type WaitForTransactionOptions = import("@tetherto/wdk-wallet").WaitForTransactionOptions;
 export type TransactionMessage = import("@solana/transaction-messages").TransactionMessage;
 export type FullySignedTransaction = import("@solana/transactions").FullySignedTransaction;
 export type SolanaRpc = ReturnType<typeof import("@solana/rpc").createSolanaRpc>;
 export type SolanaTransactionReceipt = ReturnType<import("@solana/rpc-api").SolanaRpcApi["getTransaction"]>;
 export type Commitment = import("@solana/rpc-types").Commitment;
 /**
- * A normalized Solana transaction receipt, extended with the confirmation count and the native transaction object.
+ * The Solana-specific fields added to a normalized transaction receipt.
  */
-export type SolanaTransactionInfo = TransactionReceipt & {
+export type SolanaTransactionDetails = {
+    /**
+     * - The number of confirmations, or null once the transaction is finalized (or when the node no longer reports a count).
+     */
     confirmations: number | null;
+    /**
+     * - The native Solana transaction object, or null while the transaction is pending.
+     */
     transaction: SolanaTransactionReceipt | null;
 };
 export type SimpleSolanaTransaction = {
