@@ -25,6 +25,7 @@ import {
 } from '@solana-program/token'
 
 import WalletAccountReadOnlySolana from '../src/wallet-account-read-only-solana.js'
+import { NoSuchElementError, ValueError } from '@tetherto/wdk-wallet'
 import WalletAccountSolana from '../src/wallet-account-solana.js'
 
 const TEST_ADDRESS = 'HmWPZeFgxZAJQYgwh5ipYwjbVTHtjEHB3dnJ5xcQBHX9'
@@ -47,6 +48,7 @@ describe('WalletAccountReadOnlySolana', () => {
       getLatestBlockhash: jest.fn(),
       getFeeForMessage: jest.fn(),
       getTransaction: jest.fn(),
+      getSignatureStatuses: jest.fn(),
       getMultipleAccounts: jest.fn()
     }
 
@@ -1128,6 +1130,112 @@ describe('WalletAccountReadOnlySolana', () => {
       await expect(
         readOnlyAccount.getTransactionReceipt(invalidSignature)
       ).rejects.toThrow()
+    })
+  })
+
+  describe('getTransaction', () => {
+    const MOCK_TX_SIGNATURE =
+      '2k3dxVsXko3Vtb7z2W31GHCbZBzRXCAo5YYqbn7bxUCQM1RQb5Xq1XhWndFGhZGpZ5mGARUx5kavWqFVoBGujpWf'
+
+    function mockStatus (status) {
+      mockRpc.getSignatureStatuses.mockReturnValue({
+        send: jest.fn().mockResolvedValue({ value: [status] })
+      })
+    }
+
+    function mockReceipt (receipt) {
+      mockRpc.getTransaction.mockReturnValue({
+        send: jest.fn().mockResolvedValue(receipt)
+      })
+    }
+
+    it('should throw NoSuchElementError when the transaction is not known', async () => {
+      mockStatus(null)
+
+      await expect(readOnlyAccount.getTransaction(MOCK_TX_SIGNATURE)).rejects.toThrow(NoSuchElementError)
+      expect(mockRpc.getTransaction).not.toHaveBeenCalled()
+    })
+
+    it('should report pending for a processed transaction', async () => {
+      mockStatus({ slot: 100n, confirmations: 1n, err: null, confirmationStatus: 'processed' })
+
+      const info = await readOnlyAccount.getTransaction(MOCK_TX_SIGNATURE)
+
+      expect(info).toMatchObject({
+        hash: MOCK_TX_SIGNATURE,
+        finality: 'pending',
+        success: undefined,
+        block: 100,
+        confirmations: 1,
+        transaction: null
+      })
+      expect(info.fee).toBeUndefined()
+      expect(mockRpc.getTransaction).not.toHaveBeenCalled()
+    })
+
+    it('should report confirmed with success and fee', async () => {
+      mockStatus({ slot: 200n, confirmations: 10n, err: null, confirmationStatus: 'confirmed' })
+      mockReceipt({ slot: 200n, meta: { err: null, fee: 5000n } })
+
+      const info = await readOnlyAccount.getTransaction(MOCK_TX_SIGNATURE)
+
+      expect(info).toMatchObject({
+        finality: 'confirmed',
+        success: true,
+        block: 200,
+        fee: 5000n,
+        confirmations: 10
+      })
+      expect(info.transaction).not.toBeNull()
+    })
+
+    it('should report final when finalized (confirmations null)', async () => {
+      mockStatus({ slot: 300n, confirmations: null, err: null, confirmationStatus: 'finalized' })
+      mockReceipt({ slot: 300n, meta: { err: null, fee: 5000n } })
+
+      const info = await readOnlyAccount.getTransaction(MOCK_TX_SIGNATURE)
+
+      expect(info).toMatchObject({
+        finality: 'final',
+        success: true,
+        confirmations: null
+      })
+    })
+
+    it('should report success false for a reverted transaction', async () => {
+      mockStatus({ slot: 400n, confirmations: null, err: { InstructionError: [0, 'Custom'] }, confirmationStatus: 'finalized' })
+      mockReceipt({ slot: 400n, meta: { err: { InstructionError: [0, 'Custom'] }, fee: 5000n } })
+
+      const info = await readOnlyAccount.getTransaction(MOCK_TX_SIGNATURE)
+
+      expect(info.finality).toBe('final')
+      expect(info.success).toBe(false)
+    })
+
+    it('should search transaction history when querying signature statuses', async () => {
+      mockStatus({ slot: 200n, confirmations: 10n, err: null, confirmationStatus: 'confirmed' })
+      mockReceipt({ slot: 200n, meta: { err: null, fee: 5000n } })
+
+      await readOnlyAccount.getTransaction(MOCK_TX_SIGNATURE)
+
+      expect(mockRpc.getSignatureStatuses).toHaveBeenCalledWith(
+        [MOCK_TX_SIGNATURE],
+        expect.objectContaining({ searchTransactionHistory: true })
+      )
+    })
+
+    it('should throw error when not connected to provider', async () => {
+      const disconnectedAccount = new WalletAccountReadOnlySolana(TEST_ADDRESS, {})
+
+      await expect(
+        disconnectedAccount.getTransaction(MOCK_TX_SIGNATURE)
+      ).rejects.toThrow(
+        'The wallet must be connected to a provider to fetch transactions.'
+      )
+    })
+
+    it('should throw ValueError for invalid signature format', async () => {
+      await expect(readOnlyAccount.getTransaction('invalid-signature')).rejects.toThrow(ValueError)
     })
   })
 
