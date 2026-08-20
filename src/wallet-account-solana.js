@@ -22,13 +22,12 @@ import {
 import {
   assertIsFullySignedTransaction,
   getBase64EncodedWireTransaction,
-  getTransactionDecoder,
   partiallySignTransaction
 } from '@solana/transactions'
 import { getCompiledTransactionMessageDecoder } from '@solana/transaction-messages'
 import { signBytes } from '@solana/keys'
 import { getAddressDecoder } from '@solana/addresses'
-import { getBase64Decoder, getBase64Encoder } from '@solana/codecs'
+import { getBase64Decoder } from '@solana/codecs'
 
 import HDKey from 'micro-key-producer/slip10.js'
 
@@ -57,7 +56,6 @@ curve.hashes.sha512 = sha512
 /** @typedef {import('./wallet-account-read-only-solana.js').SolanaWalletConfig} SolanaWalletConfig */
 
 /** @typedef {import('@solana/transactions').FullySignedTransaction} FullySignedTransaction */
-/** @typedef {import('@solana/transactions').Transaction} Transaction */
 
 const SLIP_0010_SOL_DERIVATION_PATH_PREFIX = "m/44'/501'"
 
@@ -226,7 +224,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
   /**
    * Signs a transaction.
    *
-   * @param {SolanaTransaction | string} tx - The transaction to sign, or a base64-encoded serialized transaction.
+   * @param {SolanaTransaction} tx - The transaction to sign: an unsigned transaction or a base64-encoded serialized transaction.
    * @returns {Promise<FullySignedTransaction>} The signed transaction.
    * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
    */
@@ -267,7 +265,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
   /**
    * Quotes the costs of a send transaction operation.
    *
-   * @param {SolanaTransaction | FullySignedTransaction | string} tx - The transaction. Either an unsigned transaction, an already-signed transaction, or a base64-encoded serialized transaction.
+   * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction, an already-signed transaction, or a base64-encoded serialized transaction.
    * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
    */
   async quoteSendTransaction (tx) {
@@ -291,7 +289,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
   /**
    * Sends a transaction.
    *
-   * @param {SolanaTransaction | FullySignedTransaction | string} tx - The transaction. Either an unsigned transaction, an already-signed transaction, or a base64-encoded serialized transaction.
+   * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction, an already-signed transaction, or a base64-encoded serialized transaction.
    * @returns {Promise<TransactionResult>} The transaction's result.
    * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
    */
@@ -358,19 +356,6 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
       typeof tx === 'object' &&
       tx.messageBytes !== undefined &&
       tx.signatures !== undefined
-  }
-
-  /**
-   * Decodes a base64-encoded serialized transaction.
-   *
-   * @protected
-   * @param {string} serializedTransaction - The base64-encoded serialized transaction.
-   * @returns {Transaction} The decoded transaction.
-   */
-  _decodeSerializedTransaction (serializedTransaction) {
-    const bytes = getBase64Encoder().encode(serializedTransaction)
-
-    return getTransactionDecoder().decode(bytes)
   }
 
   /**

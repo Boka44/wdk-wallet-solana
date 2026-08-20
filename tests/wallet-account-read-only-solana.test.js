@@ -18,6 +18,10 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 
 import { address } from '@solana/addresses'
 import {
+  compileTransaction,
+  getBase64EncodedWireTransaction
+} from '@solana/transactions'
+import {
   AccountState,
   findAssociatedTokenPda,
   getTokenEncoder,
@@ -599,6 +603,46 @@ describe('WalletAccountReadOnlySolana', () => {
         await expect(
           readOnlyAccount.quoteSendTransaction(nativeTx)
         ).rejects.toThrow('Failed to calculate transaction fee')
+      })
+    })
+
+    describe('SerializedTransaction', () => {
+      it('should quote fee for a base64-encoded serialized transaction', async () => {
+        const signingAccount = new WalletAccountSolana(
+          TEST_SEED_PHRASE,
+          "0'/0'/0'",
+          {
+            provider: TEST_RPC_URL,
+            commitment: 'processed'
+          }
+        )
+
+        signingAccount._rpc = mockRpc
+
+        mockRpc.getLatestBlockhash.mockReturnValue({
+          send: jest.fn().mockResolvedValue({
+            value: {
+              blockhash: 'HhqkdqemrKDK5Wd4oiCtzfpBWfdGS79YhLtzAck5Nz7T',
+              lastValidBlockHeight: 100000n
+            }
+          })
+        })
+        mockRpc.getFeeForMessage.mockReturnValue({
+          send: jest.fn().mockResolvedValue({ value: 5000n })
+        })
+
+        const transactionMessage = await signingAccount._prepareTransactionMessage({
+          to: '4r33xEKAD2cNMrC9NyJy8nb4XmruUKebZ6LZZm65PVUZ',
+          value: 1000000000n
+        })
+        const serialized = getBase64EncodedWireTransaction(
+          compileTransaction(transactionMessage)
+        )
+
+        const result = await readOnlyAccount.quoteSendTransaction(serialized)
+
+        expect(result).toEqual({ fee: 5000n })
+        expect(mockRpc.getFeeForMessage).toHaveBeenCalledTimes(1)
       })
     })
 

@@ -79,7 +79,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
     /**
      * Signs a transaction.
      *
-     * @param {SolanaTransaction} tx - The transaction to sign.
+     * @param {SolanaTransaction} tx - The transaction to sign: an unsigned transaction or a base64-encoded serialized transaction.
      * @returns {Promise<FullySignedTransaction>} The signed transaction.
      * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
      */
@@ -87,14 +87,14 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
     /**
      * Quotes the costs of a send transaction operation.
      *
-     * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction or an already-signed transaction.
+     * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction, an already-signed transaction, or a base64-encoded serialized transaction.
      * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
      */
     quoteSendTransaction(tx: SolanaTransaction | FullySignedTransaction): Promise<Omit<TransactionResult, "hash">>;
     /**
      * Sends a transaction.
      *
-     * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction or an already-signed transaction.
+     * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction, an already-signed transaction, or a base64-encoded serialized transaction.
      * @returns {Promise<TransactionResult>} The transaction's result.
      * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
      */
@@ -110,6 +110,17 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @returns {boolean} True if the value is a signed transaction.
      */
     protected _isSignedTransaction(tx: SolanaTransaction | FullySignedTransaction): boolean;
+    /**
+     * Signs a base64-encoded serialized transaction (e.g. a swap or bridge payload built
+     * by an external API) with the account's key pair.
+     *
+     * @protected
+     * @param {string} serializedTransaction - The base64-encoded serialized transaction.
+     * @returns {Promise<FullySignedTransaction>} The signed transaction.
+     * @throws {Error} If the transaction's fee payer is not the account, or if the
+     *   transaction still misses signatures the account cannot provide.
+     */
+    protected _signSerializedTransaction(serializedTransaction: string): Promise<FullySignedTransaction>;
     /**
      * Calculates the fee for an already-signed transaction.
      *

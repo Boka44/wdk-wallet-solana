@@ -54,7 +54,8 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
     /**
      * Quotes the costs of a send transaction operation.
      *
-     * @param {SolanaTransaction} tx - The transaction.
+     * @param {SolanaTransaction} tx - The transaction: a native transfer object, a transaction
+     *   message, or a base64-encoded serialized transaction.
      * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
      */
     quoteSendTransaction(tx: SolanaTransaction): Promise<Omit<TransactionResult, "hash">>;
@@ -136,6 +137,14 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      */
     protected _getFeeForBase64Message(base64EncodedMessage: string): Promise<bigint>;
     /**
+     * Decodes a base64-encoded serialized transaction.
+     *
+     * @protected
+     * @param {string} serializedTransaction - The base64-encoded serialized transaction.
+     * @returns {Transaction} The decoded transaction.
+     */
+    protected _decodeSerializedTransaction(serializedTransaction: string): Transaction;
+    /**
      * Verifies a message's signature.
      *
      * @param {string} message - The original message.
@@ -168,6 +177,7 @@ export type TransactionReceipt = import("@tetherto/wdk-wallet").TransactionRecei
 export type WaitForTransactionOptions = import("@tetherto/wdk-wallet").WaitForTransactionOptions;
 export type TransactionMessage = import("@solana/transaction-messages").TransactionMessage;
 export type FullySignedTransaction = import("@solana/transactions").FullySignedTransaction;
+export type Transaction = import("@solana/transactions").Transaction;
 export type SolanaRpc = ReturnType<typeof import("@solana/rpc").createSolanaRpc>;
 export type SolanaTransactionReceipt = ReturnType<import("@solana/rpc-api").SolanaRpcApi["getTransaction"]>;
 export type Commitment = import("@solana/rpc-types").Commitment;
@@ -194,7 +204,12 @@ export type SimpleSolanaTransaction = {
      */
     value: number | bigint;
 };
-export type SolanaTransaction = SimpleSolanaTransaction | TransactionMessage;
+/**
+ * A transaction to operate on: a native transfer object, a transaction message, or a
+ * base64-encoded serialized transaction (e.g. a swap or bridge payload built by an
+ * external API).
+ */
+export type SolanaTransaction = SimpleSolanaTransaction | TransactionMessage | string;
 export type SolanaWalletConfig = {
     /**
      * - The Solana RPC url. It's also possible to provide an array of urls instead. In such case, connection errors will cause the wallet to automatically fallback on the next provider in the list.
