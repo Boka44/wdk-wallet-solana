@@ -26,6 +26,7 @@ import {
 import { getCompiledTransactionMessageDecoder } from '@solana/transaction-messages'
 import { signTransactionMessageWithSigners } from '@solana/signers'
 import { getBase64EncodedWireTransaction } from '@solana/transactions'
+import { getBase64Decoder } from '@solana/codecs'
 import WalletManagerSolana from '../src/wallet-manager-solana.js'
 import WalletAccountSolana from '../src/wallet-account-solana.js'
 import WalletAccountReadOnlySolana from '../src/wallet-account-read-only-solana.js'
