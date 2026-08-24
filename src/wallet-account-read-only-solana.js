@@ -33,6 +33,7 @@ import {
   isTransactionMessageWithDurableNonceLifetime
 } from '@solana/transaction-messages'
 import { getTransactionDecoder } from '@solana/transactions'
+import { getBase64Decoder } from '@solana/codecs'
 import { getBase64Decoder, getBase64Encoder } from '@solana/codecs'
 import { getTransferSolInstruction } from '@solana-program/system'
 import {
