@@ -32,6 +32,7 @@ import {
   isTransactionMessageWithBlockhashLifetime,
   isTransactionMessageWithDurableNonceLifetime
 } from '@solana/transaction-messages'
+import { getTransactionDecoder } from '@solana/transactions'
 import { getBase64Decoder, getBase64Encoder } from '@solana/codecs'
 import { getTransferSolInstruction } from '@solana-program/system'
 import {
@@ -50,6 +51,7 @@ import { isSignature, verifySignature } from '@solana/keys'
 
 /** @typedef {import('@solana/transaction-messages').TransactionMessage} TransactionMessage */
 /** @typedef {import('@solana/transactions').FullySignedTransaction} FullySignedTransaction */
+/** @typedef {import('@solana/transactions').Transaction} Transaction */
 /** @typedef {ReturnType<typeof import('@solana/rpc').createSolanaRpc>} SolanaRpc */
 /** @typedef {ReturnType<import('@solana/rpc-api').SolanaRpcApi['getTransaction']>} SolanaTransactionReceipt */
 /** @typedef {import('@solana/rpc-types').Commitment} Commitment */
@@ -69,7 +71,11 @@ import { isSignature, verifySignature } from '@solana/keys'
  */
 
 /**
- * @typedef {SimpleSolanaTransaction | TransactionMessage} SolanaTransaction
+ * A transaction to operate on: a native transfer object, a transaction message, or a
+ * base64-encoded serialized transaction (e.g. a swap or bridge payload built by an
+ * external API).
+ *
+ * @typedef {SimpleSolanaTransaction | TransactionMessage | string} SolanaTransaction
  */
 
 /**
@@ -266,12 +272,22 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
   /**
    * Quotes the costs of a send transaction operation.
    *
-   * @param {SolanaTransaction} tx - The transaction.
+   * @param {SolanaTransaction} tx - The transaction: a native transfer object, a transaction
+   *   message, or a base64-encoded serialized transaction.
    * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
    */
   async quoteSendTransaction (tx) {
     if (!this._rpc) {
       throw new Error('The wallet must be connected to a provider to quote transactions.')
+    }
+
+    if (typeof tx === 'string') {
+      const { messageBytes } = this._decodeSerializedTransaction(tx)
+      const base64EncodedMessage = getBase64Decoder().decode(messageBytes)
+
+      const fee = await this._getFeeForBase64Message(base64EncodedMessage)
+
+      return { fee }
     }
 
     const addr = await this.getAddress()
@@ -561,6 +577,19 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
       throw new Error('Failed to calculate transaction fee')
     }
     return BigInt(fee.value)
+  }
+
+  /**
+   * Decodes a base64-encoded serialized transaction.
+   *
+   * @protected
+   * @param {string} serializedTransaction - The base64-encoded serialized transaction.
+   * @returns {Transaction} The decoded transaction.
+   */
+  _decodeSerializedTransaction (serializedTransaction) {
+    const bytes = getBase64Encoder().encode(serializedTransaction)
+
+    return getTransactionDecoder().decode(bytes)
   }
 
   /**
