@@ -547,9 +547,7 @@ describe('WalletAccountSolana', () => {
           await buildSignedTransaction(account, TX)
         )
 
-        const result = await account.sendTransaction(serialized, {
-          skipConfirmation: true
-        })
+        const result = await account.sendTransaction(serialized)
 
         expect(result.hash).toBe('mock-sig')
         expect(result.fee).toBe(5000n)
