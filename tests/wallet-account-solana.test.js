@@ -574,6 +574,9 @@ describe('WalletAccountSolana', () => {
         const { fee } = await account.quoteSendTransaction(serialized)
 
         expect(fee).toBe(5000n)
+        expect(mockRpc.getFeeForMessage).toHaveBeenCalledWith(expectedMessage, {
+          commitment: 'processed'
+        })
         expect(mockRpc.sendTransaction).not.toHaveBeenCalled()
       })
 
