@@ -570,6 +570,8 @@ describe('WalletAccountSolana', () => {
 
       it('should quote a base64-encoded serialized transaction without broadcasting', async () => {
         const serialized = await buildSerializedTransaction(account, TX)
+        const { messageBytes } = await buildSignedTransaction(account, TX)
+        const expectedMessage = getBase64Decoder().decode(messageBytes)
 
         const { fee } = await account.quoteSendTransaction(serialized)
 
