@@ -279,7 +279,6 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    *   message, or a base64-encoded serialized transaction.
    * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
    * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-   * @throws {ValueError} If the transaction's fee payer is not the account, or if its fee cannot be computed.
    */
   async quoteSendTransaction (tx) {
     if (!this._rpc) {
@@ -320,7 +319,6 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    * @param {TransferOptions} options - The transfer's options.
    * @returns {Promise<Omit<TransferResult, 'hash'>>} The transfer's quotes.
    * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-   * @throws {ValueError} If the amount exceeds the representable range, or if the transfer's fee cannot be computed.
    */
   async quoteTransfer (options) {
     if (!this._rpc) {
@@ -425,8 +423,6 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    * @param {string} hash - The transaction's signature.
    * @param {WaitForTransactionOptions} [options] - The wait options.
    * @returns {Promise<TransactionReceipt & SolanaTransactionDetails>} The terminal receipt for the finality target reached (inspect `success` to tell success from revert).
-   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-   * @throws {ValueError} If the hash is not a valid signature.
    * @throws {TimeoutError} If the target is not reached before the timeout.
    */
   async waitForTransaction (hash, options = {}) {
@@ -558,7 +554,6 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    * @protected
    * @param {TransactionMessage} transactionMessage - The transaction message to calculate fee for.
    * @returns {Promise<bigint>} The calculated transaction fee in lamports.
-   * @throws {ValueError} If the provider cannot compute a fee for the message.
    */
   async _getTransactionFee (transactionMessage) {
     const compiledTransactionMessageEncoder = getCompiledTransactionMessageEncoder()

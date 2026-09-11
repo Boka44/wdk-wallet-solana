@@ -16,7 +16,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @param {string | Uint8Array} seed - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
      * @param {string} path - The SLIP-0010 derivation path (e.g. "0'/0'/0'").
      * @param {SolanaWalletConfig} [config] - The configuration object.
-     * @throws {ValueError} If the seed phrase is not a valid BIP-39 seed phrase, or if the derivation path is not fully hardened.
+     * @throws {ValueError} If the seed phrase is not a valid BIP-39 seed phrase.
      */
     constructor(seed: string | Uint8Array, path: string, config?: SolanaWalletConfig);
     /**
@@ -35,19 +35,19 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      */
     private _signer;
     /**
-     * Raw Ed25519 private key bytes (32 bytes).
-     *
-     * @private
-     * @type {Uint8Array | undefined}
-     */
-    private _rawPrivateKey;
-    /**
      * Raw Ed25519 public key bytes (32 bytes).
      *
      * @private
      * @type {Uint8Array}
      */
     private _rawPublicKey;
+    /**
+     * Raw Ed25519 private key bytes (32 bytes).
+     *
+     * @private
+     * @type {Uint8Array | undefined}
+     */
+    private _rawPrivateKey;
     /**
      * The derivation path's index of this account.
      *
@@ -85,7 +85,6 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @returns {Promise<FullySignedTransaction>} The signed transaction.
      * @throws {AssertionError} If the wallet account has been disposed.
      * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-     * @throws {ValueError} If the transaction's fee payer is not the account.
      * @throws {MaximumFeeExceededError} If the transaction's cost exceeds the maximum transaction fee option.
      */
     signTransaction(tx: SolanaTransaction): Promise<FullySignedTransaction>;
@@ -95,7 +94,6 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction, an already-signed transaction, or a base64-encoded serialized transaction.
      * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
      * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-     * @throws {ValueError} If the transaction's fee payer is not the account, or if its fee cannot be computed.
      */
     quoteSendTransaction(tx: SolanaTransaction | FullySignedTransaction): Promise<Omit<TransactionResult, "hash">>;
     /**
@@ -105,7 +103,6 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @returns {Promise<TransactionResult>} The transaction's result.
      * @throws {AssertionError} If the wallet account has been disposed.
      * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-     * @throws {ValueError} If the transaction's fee payer is not the account.
      * @throws {MaximumFeeExceededError} If the transaction's cost exceeds the maximum transaction fee option.
      */
     sendTransaction(tx: SolanaTransaction | FullySignedTransaction): Promise<TransactionResult>;
@@ -150,7 +147,6 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @returns {Promise<TransferResult>} The transfer's result.
      * @throws {AssertionError} If the wallet account has been disposed.
      * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
-     * @throws {ValueError} If the amount exceeds the representable range.
      * @throws {MaximumFeeExceededError} If the transfer's cost exceeds the maximum transfer fee option.
      * @note only SPL tokens - won't work for native SOL
      */
