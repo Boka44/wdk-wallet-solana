@@ -29,7 +29,7 @@ import {
 } from '@solana-program/token'
 
 import WalletAccountReadOnlySolana from '../src/wallet-account-read-only-solana.js'
-import { NoSuchElementError, ValueError } from '@tetherto/wdk-wallet'
+import { NoSuchElementError, ProviderRequiredError, ValueError } from '@tetherto/wdk-wallet'
 import WalletAccountSolana from '../src/wallet-account-solana.js'
 
 const TEST_ADDRESS = 'HmWPZeFgxZAJQYgwh5ipYwjbVTHtjEHB3dnJ5xcQBHX9'
@@ -116,6 +116,7 @@ describe('WalletAccountReadOnlySolana', () => {
       await expect(disconnectedAccount.getBalance()).rejects.toThrow(
         'The wallet must be connected to a provider to retrieve balances.'
       )
+      await expect(disconnectedAccount.getBalance()).rejects.toThrow(ProviderRequiredError)
     })
 
     it('should handle RPC errors gracefully', async () => {
@@ -226,6 +227,9 @@ describe('WalletAccountReadOnlySolana', () => {
       ).rejects.toThrow(
         'The wallet must be connected to a provider to retrieve token balances.'
       )
+      await expect(
+        disconnectedAccount.getTokenBalance(MOCK_TOKEN_MINT)
+      ).rejects.toThrow(ProviderRequiredError)
     })
 
     it('should throw error for invalid token mint address', async () => {
@@ -461,6 +465,9 @@ describe('WalletAccountReadOnlySolana', () => {
 
       await expect(disconnectedAccount.getTokenBalances([MOCK_TOKEN_MINT_1])).rejects.toThrow(
         'The wallet must be connected to a provider to retrieve token balances.'
+      )
+      await expect(disconnectedAccount.getTokenBalances([MOCK_TOKEN_MINT_1])).rejects.toThrow(
+        ProviderRequiredError
       )
     })
 
@@ -754,6 +761,9 @@ describe('WalletAccountReadOnlySolana', () => {
         ).rejects.toThrow(
           `Transaction fee payer (${differentAddress}) does not match wallet address (${TEST_ADDRESS})`
         )
+        await expect(
+          readOnlyAccount.quoteSendTransaction(transactionMessage)
+        ).rejects.toThrow(ValueError)
 
         expect(mockRpc.getFeeForMessage).not.toHaveBeenCalled()
       })
@@ -875,6 +885,9 @@ describe('WalletAccountReadOnlySolana', () => {
         ).rejects.toThrow(
           'The wallet must be connected to a provider to quote transactions.'
         )
+        await expect(
+          disconnectedAccount.quoteSendTransaction(tx)
+        ).rejects.toThrow(ProviderRequiredError)
       })
     })
   })
@@ -1032,6 +1045,13 @@ describe('WalletAccountReadOnlySolana', () => {
       ).rejects.toThrow(
         'The wallet must be connected to a provider to quote transfer operations.'
       )
+      await expect(
+        disconnectedAccount.quoteTransfer({
+          token: MOCK_TOKEN_MINT,
+          recipient: MOCK_RECIPIENT,
+          amount: 1000000n
+        })
+      ).rejects.toThrow(ProviderRequiredError)
     })
 
     it('should throw error when getFeeForMessage returns null', async () => {
@@ -1151,6 +1171,9 @@ describe('WalletAccountReadOnlySolana', () => {
       ).rejects.toThrow(
         'The wallet must be connected to a provider to fetch transaction receipts.'
       )
+      await expect(
+        disconnectedAccount.getTransactionReceipt(MOCK_TX_SIGNATURE)
+      ).rejects.toThrow(ProviderRequiredError)
     })
 
     it('should throw error when getTransaction fails', async () => {
@@ -1276,6 +1299,9 @@ describe('WalletAccountReadOnlySolana', () => {
       ).rejects.toThrow(
         'The wallet must be connected to a provider to fetch transactions.'
       )
+      await expect(
+        disconnectedAccount.getTransaction(MOCK_TX_SIGNATURE)
+      ).rejects.toThrow(ProviderRequiredError)
     })
 
     it('should throw ValueError for invalid signature format', async () => {

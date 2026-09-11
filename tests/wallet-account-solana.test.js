@@ -30,6 +30,7 @@ import { getBase64Decoder } from '@solana/codecs'
 import WalletManagerSolana from '../src/wallet-manager-solana.js'
 import WalletAccountSolana from '../src/wallet-account-solana.js'
 import WalletAccountReadOnlySolana from '../src/wallet-account-read-only-solana.js'
+import { AssertionError, MaximumFeeExceededError, ProviderRequiredError, ValueError } from '@tetherto/wdk-wallet'
 
 const TEST_SEED_PHRASE =
   'test walk nut penalty hip pave soap entry language right filter choice'
@@ -68,6 +69,16 @@ describe('WalletAccountSolana', () => {
             }
           )
         }).toThrow('The seed phrase is invalid')
+        expect(() => {
+          return new WalletAccountSolana(
+            'invalid seed phrase',
+            "0'/0'",
+            {
+              provider: TEST_RPC_URL,
+              commitment: 'processed'
+            }
+          )
+        }).toThrow(ValueError)
       })
 
       it('should accept valid BIP-39 seed phrase as string', async () => {
@@ -299,7 +310,7 @@ describe('WalletAccountSolana', () => {
 
         tempAccount.dispose()
 
-        await expect(tempAccount.sign('test message')).rejects.toThrow()
+        await expect(tempAccount.sign('test message')).rejects.toThrow(AssertionError)
       })
     })
   })
@@ -338,6 +349,9 @@ describe('WalletAccountSolana', () => {
         await expect(
           noRpcAccount.sendTransaction({ to: 'DummyAddress', value: 1000n })
         ).rejects.toThrow('The wallet must be connected to a provider')
+        await expect(
+          noRpcAccount.sendTransaction({ to: 'DummyAddress', value: 1000n })
+        ).rejects.toThrow(ProviderRequiredError)
       })
 
       it('should throw if account is disposed', async () => {
@@ -352,6 +366,9 @@ describe('WalletAccountSolana', () => {
         await expect(
           tempAccount.sendTransaction({ to: 'DummyAddress', value: 1000n })
         ).rejects.toThrow('The wallet account has been disposed.')
+        await expect(
+          tempAccount.sendTransaction({ to: 'DummyAddress', value: 1000n })
+        ).rejects.toThrow(AssertionError)
       })
     })
 
@@ -510,6 +527,7 @@ describe('WalletAccountSolana', () => {
         await expect(account.sendTransaction(txMessage)).rejects.toThrow(
           'does not match wallet address'
         )
+        await expect(account.sendTransaction(txMessage)).rejects.toThrow(ValueError)
       })
     })
 
@@ -592,6 +610,7 @@ describe('WalletAccountSolana', () => {
         await expect(account.sendTransaction(serialized)).rejects.toThrow(
           'does not match wallet address'
         )
+        await expect(account.sendTransaction(serialized)).rejects.toThrow(ValueError)
         expect(mockRpc.sendTransaction).not.toHaveBeenCalled()
       })
     })
@@ -656,6 +675,12 @@ describe('WalletAccountSolana', () => {
             value: 1000000n
           })
         ).rejects.toThrow('Exceeded maximum fee cost for transaction operation.')
+        await expect(
+          limitedAccount.sendTransaction({
+            to: '9CXtfmGEtfjmtPKnq2QZcRzCiMzE9T8NQfRicJZetvk2',
+            value: 1000000n
+          })
+        ).rejects.toThrow(MaximumFeeExceededError)
       })
 
       it('should allow a fee exactly equal to transactionMaxFee', async () => {
@@ -767,6 +792,9 @@ describe('WalletAccountSolana', () => {
       await expect(
         limitedAccount.sendTransaction(signedTx)
       ).rejects.toThrow('Exceeded maximum fee cost for transaction operation.')
+      await expect(
+        limitedAccount.sendTransaction(signedTx)
+      ).rejects.toThrow(MaximumFeeExceededError)
     })
   })
 
@@ -892,6 +920,12 @@ describe('WalletAccountSolana', () => {
           value: 1000000n
         })
       ).rejects.toThrow('Exceeded maximum fee cost for transaction operation.')
+      await expect(
+        limitedAccount.signTransaction({
+          to: '9CXtfmGEtfjmtPKnq2QZcRzCiMzE9T8NQfRicJZetvk2',
+          value: 1000000n
+        })
+      ).rejects.toThrow(MaximumFeeExceededError)
     })
 
     it('should allow a fee exactly equal to transactionMaxFee', async () => {
@@ -998,6 +1032,13 @@ describe('WalletAccountSolana', () => {
             amount: 1000n
           })
         ).rejects.toThrow('The wallet must be connected to a provider')
+        await expect(
+          noRpcAccount.transfer({
+            token: 'FzFRHEc1tWLGa2doGw2KAKrfNrBH3QwGTnjm37o2HQGb',
+            recipient: 'FzFRHEc1tWLGa2doGw2KAKrfNrBH3QwGTnjm37o2HQGb',
+            amount: 1000n
+          })
+        ).rejects.toThrow(ProviderRequiredError)
       })
 
       it('should throw if account is disposed', async () => {
@@ -1016,6 +1057,13 @@ describe('WalletAccountSolana', () => {
             amount: 1000n
           })
         ).rejects.toThrow('The wallet account has been disposed.')
+        await expect(
+          tempAccount.transfer({
+            token: 'FzFRHEc1tWLGa2doGw2KAKrfNrBH3QwGTnjm37o2HQGb',
+            recipient: 'FzFRHEc1tWLGa2doGw2KAKrfNrBH3QwGTnjm37o2HQGb',
+            amount: 1000n
+          })
+        ).rejects.toThrow(AssertionError)
       })
 
       it('should throw if amount exceeds u64 maximum', async () => {
@@ -1026,6 +1074,13 @@ describe('WalletAccountSolana', () => {
             amount: 0xffffffffffffffffn + 1n
           })
         ).rejects.toThrow('Amount exceeds u64 maximum value')
+        await expect(
+          account.transfer({
+            token: 'FzFRHEc1tWLGa2doGw2KAKrfNrBH3QwGTnjm37o2HQGb',
+            recipient: 'FzFRHEc1tWLGa2doGw2KAKrfNrBH3QwGTnjm37o2HQGb',
+            amount: 0xffffffffffffffffn + 1n
+          })
+        ).rejects.toThrow(ValueError)
       })
 
       it('should throw if number amount exceeds safe integer', async () => {
@@ -1036,6 +1091,13 @@ describe('WalletAccountSolana', () => {
             amount: Number.MAX_SAFE_INTEGER + 1
           })
         ).rejects.toThrow('Amount exceeds safe integer range')
+        await expect(
+          account.transfer({
+            token: 'FzFRHEc1tWLGa2doGw2KAKrfNrBH3QwGTnjm37o2HQGb',
+            recipient: 'FzFRHEc1tWLGa2doGw2KAKrfNrBH3QwGTnjm37o2HQGb',
+            amount: Number.MAX_SAFE_INTEGER + 1
+          })
+        ).rejects.toThrow(ValueError)
       })
 
       it('should accept valid amounts', async () => {
@@ -1108,6 +1170,13 @@ describe('WalletAccountSolana', () => {
             amount: 1000n
           })
         ).rejects.toThrow('Exceeded maximum fee cost')
+        await expect(
+          limitedAccount.transfer({
+            token: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+            recipient: 'ASbM8cPUrBxgjgNuu3hQSK2JSDDG6HhQ9FqU3ofprkMV',
+            amount: 1000n
+          })
+        ).rejects.toThrow(MaximumFeeExceededError)
       })
 
       it('should allow transfer if fee is below limit', async () => {

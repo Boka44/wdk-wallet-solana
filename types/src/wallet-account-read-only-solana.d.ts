@@ -17,13 +17,6 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      */
     protected _config: Omit<SolanaWalletConfig, "transferMaxFee" | "transactionMaxFee">;
     /**
-     * A Solana RPC client for HTTP requests.
-     *
-     * @protected
-     * @type {SolanaRpc | undefined}
-     */
-    protected _rpc: SolanaRpc | undefined;
-    /**
      * The commitment level for querying transaction and account states.
      * Determines the level of finality required before returning results.
      *
@@ -32,23 +25,18 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      */
     protected _commitment: Commitment;
     /**
-     * Returns the account's native SOL balance.
+     * A Solana RPC client for HTTP requests.
      *
-     * @returns {Promise<bigint>} The sol balance (in lamports).
+     * @protected
+     * @type {SolanaRpc | undefined}
      */
-    getBalance(): Promise<bigint>;
-    /**
-     * Returns the account balance for a specific SPL token.
-     *
-     * @param {string} tokenAddress - The smart contract address of the token.
-     * @returns {Promise<bigint>} The token balance (in base unit).
-     */
-    getTokenBalance(tokenAddress: string): Promise<bigint>;
+    protected _rpc: SolanaRpc | undefined;
     /**
      * Returns the account balances for a list of SPL tokens.
      *
      * @param {string[]} tokenAddresses - The smart contract addresses of the tokens.
      * @returns {Promise<Record<string, bigint>>} A mapping of token addresses to their balances (in base units).
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
      */
     getTokenBalances(tokenAddresses: string[]): Promise<Record<string, bigint>>;
     /**
@@ -57,21 +45,18 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      * @param {SolanaTransaction} tx - The transaction: a native transfer object, a transaction
      *   message, or a base64-encoded serialized transaction.
      * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+     * @throws {ValueError} If the transaction's fee payer is not the account, or if its fee cannot be computed.
      */
     quoteSendTransaction(tx: SolanaTransaction): Promise<Omit<TransactionResult, "hash">>;
-    /**
-     * Quotes the costs of a transfer operation.
-     *
-     * @param {TransferOptions} options - The transfer's options.
-     * @returns {Promise<Omit<TransferResult, 'hash'>>} The transfer's quotes.
-     */
-    quoteTransfer(options: TransferOptions): Promise<Omit<TransferResult, "hash">>;
     /**
      * Retrieves a transaction receipt by its signature
      *
      * @deprecated Use {@link getTransaction} instead, which returns a normalized, finality-based receipt. The raw transaction remains available on its `transaction` property.
      * @param {string} hash - The transaction's hash.
      * @returns {Promise<SolanaTransactionReceipt | null>} — The receipt, or null if the transaction has not been included in a block yet.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+     * @throws {ValueError} If the hash is not a valid signature.
      */
     getTransactionReceipt(hash: string): Promise<SolanaTransactionReceipt | null>;
     /**
@@ -79,6 +64,7 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      *
      * @param {string} hash - The transaction's signature.
      * @returns {Promise<TransactionReceipt & SolanaTransactionDetails>} The normalized receipt.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
      * @throws {ValueError} If the hash is not a valid signature.
      * @throws {NoSuchElementError} If no transaction has been found for the given hash.
      */
@@ -94,6 +80,8 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      * @param {string} hash - The transaction's signature.
      * @param {WaitForTransactionOptions} [options] - The wait options.
      * @returns {Promise<TransactionReceipt & SolanaTransactionDetails>} The terminal receipt for the finality target reached (inspect `success` to tell success from revert).
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+     * @throws {ValueError} If the hash is not a valid signature.
      * @throws {TimeoutError} If the target is not reached before the timeout.
      */
     waitForTransaction(hash: string, options?: WaitForTransactionOptions): Promise<TransactionReceipt & SolanaTransactionDetails>;
@@ -106,6 +94,7 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      * @param {string} recipient - The recipient's wallet address (base58-encoded public key).
      * @param {number | bigint} amount - The amount to transfer in token's base units (must be ≤ 2^64-1).
      * @returns {Promise<TransactionMessage>} The constructed transaction message.
+     * @throws {ValueError} If the amount exceeds the representable range.
      * @todo Support Token-2022 (Token Extensions Program).
      * @todo Support transfer with memo for tokens that require it.
      */
@@ -126,6 +115,7 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      * @protected
      * @param {TransactionMessage} transactionMessage - The transaction message to calculate fee for.
      * @returns {Promise<bigint>} The calculated transaction fee in lamports.
+     * @throws {ValueError} If the provider cannot compute a fee for the message.
      */
     protected _getTransactionFee(transactionMessage: TransactionMessage): Promise<bigint>;
     /**
@@ -134,6 +124,7 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      * @protected
      * @param {string} base64EncodedMessage - The base64-encoded compiled transaction message.
      * @returns {Promise<bigint>} The calculated transaction fee in lamports.
+     * @throws {ValueError} If the provider cannot compute a fee for the message, e.g. because its blockhash has expired.
      */
     protected _getFeeForBase64Message(base64EncodedMessage: string): Promise<bigint>;
     /**
@@ -144,14 +135,6 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      * @returns {Transaction} The decoded transaction.
      */
     protected _decodeSerializedTransaction(serializedTransaction: string): Transaction;
-    /**
-     * Verifies a message's signature.
-     *
-     * @param {string} message - The original message.
-     * @param {string} signature - The signature to verify.
-     * @returns {Promise<boolean>} True if the signature is valid.
-     */
-    verify(message: string, signature: string): Promise<boolean>;
     /**
      * Ensures the transaction has either a blockhash lifetime or a durable nonce lifetime.
      *
@@ -166,7 +149,7 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      * @protected
      * @param {SolanaTransaction} tx - The transaction.
      * @returns {Promise<void>} Resolves when the transaction has no explicit fee payer or it matches this wallet address.
-     * @throws {Error} If the transaction fee payer does not match this wallet address.
+     * @throws {ValueError} If the transaction fee payer does not match this wallet address.
      */
     protected _assertFeePayer(tx: SolanaTransaction): Promise<void>;
 }
@@ -236,4 +219,4 @@ export type SolanaWalletConfig = {
      */
     transactionMaxFee?: number | bigint;
 };
-import { WalletAccountReadOnly } from "@tetherto/wdk-wallet";
+import { WalletAccountReadOnly } from '@tetherto/wdk-wallet';

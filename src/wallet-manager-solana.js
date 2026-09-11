@@ -14,7 +14,7 @@
 
 'use strict'
 
-import WalletManager from '@tetherto/wdk-wallet'
+import WalletManager, { ProviderRequiredError } from '@tetherto/wdk-wallet'
 
 import FailoverProvider from '@tetherto/wdk-failover-provider'
 
@@ -122,10 +122,11 @@ export default class WalletManagerSolana extends WalletManager {
    * Returns the current fee rates.
    *
    * @returns {Promise<FeeRates>} The fee rates (in lamports).
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    */
   async getFeeRates () {
     if (!this._rpc) {
-      throw new Error('The wallet must be connected to a provider to get fee rates.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to get fee rates.')
     }
 
     const fees = await this._rpc.getRecentPrioritizationFees().send()
