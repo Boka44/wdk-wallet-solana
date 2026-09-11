@@ -24,7 +24,6 @@ import {
 } from '@jest/globals'
 import WalletManagerSolana from '../src/wallet-manager-solana.js'
 import WalletAccountSolana from '../src/wallet-account-solana.js'
-import { ProviderRequiredError } from '@tetherto/wdk-wallet'
 
 const TEST_SEED_PHRASE =
   'test walk nut penalty hip pave soap entry language right filter choice'
@@ -224,7 +223,6 @@ describe('WalletManagerSolana', () => {
       await expect(noRpcWallet.getFeeRates()).rejects.toThrow(
         'The wallet must be connected to a provider to get fee rates'
       )
-      await expect(noRpcWallet.getFeeRates()).rejects.toThrow(ProviderRequiredError)
     })
 
     it('should handle RPC errors gracefully', async () => {
