@@ -183,4 +183,4 @@ export type KeyPairSigner = import("@solana/signers").KeyPairSigner;
 export type SolanaTransaction = import("./wallet-account-read-only-solana.js").SolanaTransaction;
 export type SolanaWalletConfig = import("./wallet-account-read-only-solana.js").SolanaWalletConfig;
 export type FullySignedTransaction = import("@solana/transactions").FullySignedTransaction;
-import WalletAccountReadOnlySolana from './wallet-account-read-only-solana.js';
+import WalletAccountReadOnlySolana from "./wallet-account-read-only-solana.js";

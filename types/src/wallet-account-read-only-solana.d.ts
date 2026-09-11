@@ -17,6 +17,13 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      */
     protected _config: Omit<SolanaWalletConfig, "transferMaxFee" | "transactionMaxFee">;
     /**
+     * A Solana RPC client for HTTP requests.
+     *
+     * @protected
+     * @type {SolanaRpc | undefined}
+     */
+    protected _rpc: SolanaRpc | undefined;
+    /**
      * The commitment level for querying transaction and account states.
      * Determines the level of finality required before returning results.
      *
@@ -24,13 +31,6 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      * @type {Commitment}
      */
     protected _commitment: Commitment;
-    /**
-     * A Solana RPC client for HTTP requests.
-     *
-     * @protected
-     * @type {SolanaRpc | undefined}
-     */
-    protected _rpc: SolanaRpc | undefined;
     /**
      * Returns the account's native SOL balance.
      *
@@ -251,4 +251,4 @@ export type SolanaWalletConfig = {
      */
     transactionMaxFee?: number | bigint;
 };
-import { WalletAccountReadOnly } from '@tetherto/wdk-wallet';
+import { WalletAccountReadOnly } from "@tetherto/wdk-wallet";
