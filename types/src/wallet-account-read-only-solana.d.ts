@@ -32,6 +32,21 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      */
     protected _rpc: SolanaRpc | undefined;
     /**
+     * Returns the account's native SOL balance.
+     *
+     * @returns {Promise<bigint>} The sol balance (in lamports).
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+     */
+    getBalance(): Promise<bigint>;
+    /**
+     * Returns the account balance for a specific SPL token.
+     *
+     * @param {string} tokenAddress - The smart contract address of the token.
+     * @returns {Promise<bigint>} The token balance (in base unit).
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+     */
+    getTokenBalance(tokenAddress: string): Promise<bigint>;
+    /**
      * Returns the account balances for a list of SPL tokens.
      *
      * @param {string[]} tokenAddresses - The smart contract addresses of the tokens.
@@ -49,6 +64,15 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      * @throws {ValueError} If the transaction's fee payer is not the account, or if its fee cannot be computed.
      */
     quoteSendTransaction(tx: SolanaTransaction): Promise<Omit<TransactionResult, "hash">>;
+    /**
+     * Quotes the costs of a transfer operation.
+     *
+     * @param {TransferOptions} options - The transfer's options.
+     * @returns {Promise<Omit<TransferResult, 'hash'>>} The transfer's quotes.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+     * @throws {ValueError} If the amount exceeds the representable range, or if the transfer's fee cannot be computed.
+     */
+    quoteTransfer(options: TransferOptions): Promise<Omit<TransferResult, "hash">>;
     /**
      * Retrieves a transaction receipt by its signature
      *
@@ -135,6 +159,14 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
      * @returns {Transaction} The decoded transaction.
      */
     protected _decodeSerializedTransaction(serializedTransaction: string): Transaction;
+    /**
+     * Verifies a message's signature.
+     *
+     * @param {string} message - The original message.
+     * @param {string} signature - The signature to verify.
+     * @returns {Promise<boolean>} True if the signature is valid.
+     */
+    verify(message: string, signature: string): Promise<boolean>;
     /**
      * Ensures the transaction has either a blockhash lifetime or a durable nonce lifetime.
      *
