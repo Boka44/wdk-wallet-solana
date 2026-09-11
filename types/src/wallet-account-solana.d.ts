@@ -127,7 +127,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @param {string} serializedTransaction - The base64-encoded serialized transaction.
      * @returns {Promise<FullySignedTransaction>} The signed transaction.
      * @throws {ValueError} If the transaction's fee payer is not the account.
-     * @throws {Error} If the transaction still misses signatures the account cannot provide.
+     * @throws {SolanaError} With code `SOLANA_ERROR__TRANSACTION__SIGNATURES_MISSING` if the transaction still misses signatures the account cannot provide.
      */
     protected _signSerializedTransaction(serializedTransaction: string): Promise<FullySignedTransaction>;
     /**
@@ -175,6 +175,7 @@ export type KeyPair = import("@tetherto/wdk-wallet").KeyPair;
 export type TransactionResult = import("@tetherto/wdk-wallet").TransactionResult;
 export type TransferOptions = import("@tetherto/wdk-wallet").TransferOptions;
 export type TransferResult = import("@tetherto/wdk-wallet").TransferResult;
+export type SolanaError = import("@solana/errors").SolanaError;
 export type KeyPairSigner = import("@solana/signers").KeyPairSigner;
 export type SolanaTransaction = import("./wallet-account-read-only-solana.js").SolanaTransaction;
 export type SolanaWalletConfig = import("./wallet-account-read-only-solana.js").SolanaWalletConfig;

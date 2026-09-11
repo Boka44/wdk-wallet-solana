@@ -55,6 +55,7 @@ curve.hashes.sha512 = sha512
 /** @typedef {import('@tetherto/wdk-wallet').TransferOptions} TransferOptions */
 /** @typedef {import('@tetherto/wdk-wallet').TransferResult} TransferResult */
 
+/** @typedef {import('@solana/errors').SolanaError} SolanaError */
 /** @typedef {import('@solana/signers').KeyPairSigner} KeyPairSigner */
 
 /** @typedef {import('./wallet-account-read-only-solana.js').SolanaTransaction} SolanaTransaction */
@@ -379,7 +380,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
    * @param {string} serializedTransaction - The base64-encoded serialized transaction.
    * @returns {Promise<FullySignedTransaction>} The signed transaction.
    * @throws {ValueError} If the transaction's fee payer is not the account.
-   * @throws {Error} If the transaction still misses signatures the account cannot provide.
+   * @throws {SolanaError} With code `SOLANA_ERROR__TRANSACTION__SIGNATURES_MISSING` if the transaction still misses signatures the account cannot provide.
    */
   async _signSerializedTransaction (serializedTransaction) {
     const transaction = this._decodeSerializedTransaction(serializedTransaction)
