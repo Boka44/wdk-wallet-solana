@@ -14,7 +14,7 @@
 
 'use strict'
 
-import { WalletAccountReadOnly, NoSuchElementError, ValueError } from '@tetherto/wdk-wallet'
+import { WalletAccountReadOnly, NoSuchElementError, ProviderRequiredError, ValueError } from '@tetherto/wdk-wallet'
 
 import FailoverProvider from '@tetherto/wdk-failover-provider'
 
@@ -149,10 +149,11 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    * Returns the account's native SOL balance.
    *
    * @returns {Promise<bigint>} The sol balance (in lamports).
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    */
   async getBalance () {
     if (!this._rpc) {
-      throw new Error('The wallet must be connected to a provider to retrieve balances.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to retrieve balances.')
     }
 
     const addr = await this.getAddress()
@@ -166,10 +167,11 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    *
    * @param {string} tokenAddress - The smart contract address of the token.
    * @returns {Promise<bigint>} The token balance (in base unit).
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    */
   async getTokenBalance (tokenAddress) {
     if (!this._rpc) {
-      throw new Error('The wallet must be connected to a provider to retrieve token balances.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to retrieve token balances.')
     }
 
     const addr = await this.getAddress()
@@ -200,10 +202,11 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    *
    * @param {string[]} tokenAddresses - The smart contract addresses of the tokens.
    * @returns {Promise<Record<string, bigint>>} A mapping of token addresses to their balances (in base units).
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    */
   async getTokenBalances (tokenAddresses) {
     if (!this._rpc) {
-      throw new Error(
+      throw new ProviderRequiredError(
         'The wallet must be connected to a provider to retrieve token balances.'
       )
     }
@@ -275,10 +278,11 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    * @param {SolanaTransaction} tx - The transaction: a native transfer object, a transaction
    *   message, or a base64-encoded serialized transaction.
    * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    */
   async quoteSendTransaction (tx) {
     if (!this._rpc) {
-      throw new Error('The wallet must be connected to a provider to quote transactions.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to quote transactions.')
     }
 
     if (typeof tx === 'string') {
@@ -314,10 +318,11 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    *
    * @param {TransferOptions} options - The transfer's options.
    * @returns {Promise<Omit<TransferResult, 'hash'>>} The transfer's quotes.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    */
   async quoteTransfer (options) {
     if (!this._rpc) {
-      throw new Error('The wallet must be connected to a provider to quote transfer operations.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to quote transfer operations.')
     }
 
     const { token, recipient, amount } = options
@@ -334,13 +339,15 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    * @deprecated Use {@link getTransaction} instead, which returns a normalized, finality-based receipt. The raw transaction remains available on its `transaction` property.
    * @param {string} hash - The transaction's hash.
    * @returns {Promise<SolanaTransactionReceipt | null>} — The receipt, or null if the transaction has not been included in a block yet.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   * @throws {ValueError} If the hash is not a valid signature.
    */
   async getTransactionReceipt (hash) {
     if (!this._rpc) {
-      throw new Error('The wallet must be connected to a provider to fetch transaction receipts.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to fetch transaction receipts.')
     }
     if (!isSignature(hash)) {
-      throw new Error('Invalid signature.')
+      throw new ValueError('Invalid signature.')
     }
 
     const transaction = await this._rpc
@@ -359,12 +366,13 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    *
    * @param {string} hash - The transaction's signature.
    * @returns {Promise<TransactionReceipt & SolanaTransactionDetails>} The normalized receipt.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    * @throws {ValueError} If the hash is not a valid signature.
    * @throws {NoSuchElementError} If no transaction has been found for the given hash.
    */
   async getTransaction (hash) {
     if (!this._rpc) {
-      throw new Error('The wallet must be connected to a provider to fetch transactions.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to fetch transactions.')
     }
     if (!isSignature(hash)) {
       throw new ValueError('Invalid signature.')
@@ -430,15 +438,16 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    * @param {string} recipient - The recipient's wallet address (base58-encoded public key).
    * @param {number | bigint} amount - The amount to transfer in token's base units (must be ≤ 2^64-1).
    * @returns {Promise<TransactionMessage>} The constructed transaction message.
+   * @throws {ValueError} If the amount exceeds the representable range.
    * @todo Support Token-2022 (Token Extensions Program).
    * @todo Support transfer with memo for tokens that require it.
    */
   async _buildSPLTransferTransactionMessage (token, recipient, amount) {
     if (typeof amount === 'bigint' && amount > MAX_U64) {
-      throw new Error('Amount exceeds u64 maximum value')
+      throw new ValueError('Amount exceeds u64 maximum value')
     }
     if (typeof amount === 'number' && amount > Number.MAX_SAFE_INTEGER) {
-      throw new Error('Amount exceeds safe integer range')
+      throw new ValueError('Amount exceeds safe integer range')
     }
 
     const addr = await this.getAddress()
@@ -566,6 +575,7 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    * @protected
    * @param {string} base64EncodedMessage - The base64-encoded compiled transaction message.
    * @returns {Promise<bigint>} The calculated transaction fee in lamports.
+   * @throws {ValueError} If the provider cannot compute a fee for the message, e.g. because its blockhash has expired.
    */
   async _getFeeForBase64Message (base64EncodedMessage) {
     const fee = await this._rpc
@@ -574,7 +584,7 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
       })
       .send()
     if (!fee.value) {
-      throw new Error('Failed to calculate transaction fee')
+      throw new ValueError('Failed to calculate transaction fee')
     }
     return BigInt(fee.value)
   }
@@ -636,14 +646,14 @@ export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
    * @protected
    * @param {SolanaTransaction} tx - The transaction.
    * @returns {Promise<void>} Resolves when the transaction has no explicit fee payer or it matches this wallet address.
-   * @throws {Error} If the transaction fee payer does not match this wallet address.
+   * @throws {ValueError} If the transaction fee payer does not match this wallet address.
    */
   async _assertFeePayer (tx) {
     if (tx.feePayer) {
       const ownerAddress = await this.getAddress()
       const feePayerAddress = typeof tx.feePayer === 'string' ? tx.feePayer : tx.feePayer.address
       if (feePayerAddress !== ownerAddress) {
-        throw new Error(`Transaction fee payer (${feePayerAddress}) does not match wallet address (${ownerAddress})`)
+        throw new ValueError(`Transaction fee payer (${feePayerAddress}) does not match wallet address (${ownerAddress})`)
       }
     }
   }

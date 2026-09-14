@@ -1,4 +1,4 @@
-/** @implements {IWalletAccount} */
+/** @implements {IWalletAccount<FullySignedTransaction>} */
 export default class WalletAccountSolana extends WalletAccountReadOnlySolana implements IWalletAccount<FullySignedTransaction> {
     /**
      * Creates a new solana wallet account.
@@ -16,6 +16,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @param {string | Uint8Array} seed - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
      * @param {string} path - The SLIP-0010 derivation path (e.g. "0'/0'/0'").
      * @param {SolanaWalletConfig} [config] - The configuration object.
+     * @throws {ValueError} If the seed phrase is not a valid BIP-39 seed phrase.
      */
     constructor(seed: string | Uint8Array, path: string, config?: SolanaWalletConfig);
     /**
@@ -37,7 +38,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * Raw Ed25519 public key bytes (32 bytes).
      *
      * @private
-     * @type {Uint8Array | undefined}
+     * @type {Uint8Array}
      */
     private _rawPublicKey;
     /**
@@ -74,6 +75,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      *
      * @param {string} message - The message to sign.
      * @returns {Promise<string>} The message's signature.
+     * @throws {AssertionError} If the wallet account has been disposed.
      */
     sign(message: string): Promise<string>;
     /**
@@ -81,7 +83,9 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      *
      * @param {SolanaTransaction} tx - The transaction to sign: an unsigned transaction or a base64-encoded serialized transaction.
      * @returns {Promise<FullySignedTransaction>} The signed transaction.
-     * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
+     * @throws {AssertionError} If the wallet account has been disposed.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+     * @throws {MaximumFeeExceededError} If the transaction's cost exceeds the maximum transaction fee option.
      */
     signTransaction(tx: SolanaTransaction): Promise<FullySignedTransaction>;
     /**
@@ -89,6 +93,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      *
      * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction, an already-signed transaction, or a base64-encoded serialized transaction.
      * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
      */
     quoteSendTransaction(tx: SolanaTransaction | FullySignedTransaction): Promise<Omit<TransactionResult, "hash">>;
     /**
@@ -96,9 +101,13 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      *
      * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction, an already-signed transaction, or a base64-encoded serialized transaction.
      * @returns {Promise<TransactionResult>} The transaction's result.
-     * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
+     * @throws {AssertionError} If the wallet account has been disposed.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+     * @throws {MaximumFeeExceededError} If the transaction's cost exceeds the maximum transaction fee option.
      */
     sendTransaction(tx: SolanaTransaction | FullySignedTransaction): Promise<TransactionResult>;
+    /** @private */
+    private _sendTransactionMessage;
     /** @private */
     private _broadcastSignedTransaction;
     /**
@@ -117,8 +126,8 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @protected
      * @param {string} serializedTransaction - The base64-encoded serialized transaction.
      * @returns {Promise<FullySignedTransaction>} The signed transaction.
-     * @throws {Error} If the transaction's fee payer is not the account, or if the
-     *   transaction still misses signatures the account cannot provide.
+     * @throws {ValueError} If the transaction's fee payer is not the account.
+     * @throws {SolanaError} With code `SOLANA_ERROR__TRANSACTION__SIGNATURES_MISSING` if the transaction still misses signatures the account cannot provide.
      */
     protected _signSerializedTransaction(serializedTransaction: string): Promise<FullySignedTransaction>;
     /**
@@ -136,7 +145,9 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      *
      * @param {TransferOptions} options - The transfer's options.
      * @returns {Promise<TransferResult>} The transfer's result.
-     * @throws {Error} If the transfer's cost exceeds the maximum transfer fee option.
+     * @throws {AssertionError} If the wallet account has been disposed.
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+     * @throws {MaximumFeeExceededError} If the transfer's cost exceeds the maximum transfer fee option.
      * @note only SPL tokens - won't work for native SOL
      */
     transfer(options: TransferOptions): Promise<TransferResult>;
@@ -146,6 +157,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @returns {Promise<WalletAccountReadOnlySolana>} The read-only account.
      */
     toReadOnlyAccount(): Promise<WalletAccountReadOnlySolana>;
+    _solanaReadOnlyAccount: WalletAccountReadOnlySolana;
     /**
      * Disposes the wallet account, erasing the private key from the memory.
      */
@@ -156,13 +168,14 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @private
      * @returns {Promise<KeyPairSigner>} - The keypair signer
      */
-    _getSigner(): Promise<KeyPairSigner>;
+    private _getSigner;
 }
 export type IWalletAccount<TSignedTransaction> = import("@tetherto/wdk-wallet").IWalletAccount<TSignedTransaction>;
 export type KeyPair = import("@tetherto/wdk-wallet").KeyPair;
 export type TransactionResult = import("@tetherto/wdk-wallet").TransactionResult;
 export type TransferOptions = import("@tetherto/wdk-wallet").TransferOptions;
 export type TransferResult = import("@tetherto/wdk-wallet").TransferResult;
+export type SolanaError = import("@solana/errors").SolanaError;
 export type KeyPairSigner = import("@solana/signers").KeyPairSigner;
 export type SolanaTransaction = import("./wallet-account-read-only-solana.js").SolanaTransaction;
 export type SolanaWalletConfig = import("./wallet-account-read-only-solana.js").SolanaWalletConfig;

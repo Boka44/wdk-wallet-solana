@@ -44,6 +44,7 @@ export default class WalletManagerSolana extends WalletManager {
      * Returns the current fee rates.
      *
      * @returns {Promise<FeeRates>} The fee rates (in lamports).
+     * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
      */
     getFeeRates(): Promise<FeeRates>;
 }
