@@ -3,6 +3,15 @@
  */
 export default class WalletAccountReadOnlySolana extends WalletAccountReadOnly {
     /**
+     * Builds a Solana RPC client from the wallet configuration: a url string, an already-built
+     * client reused as-is, or a list of either (with connection errors failing over to the next).
+     *
+     * @protected
+     * @param {Omit<SolanaWalletConfig, 'transferMaxFee' | 'transactionMaxFee'>} [config] - The configuration object.
+     * @returns {SolanaRpc | undefined} The rpc client, or undefined if none is configured.
+     */
+    protected static _buildRpc(config?: Omit<SolanaWalletConfig, "transferMaxFee" | "transactionMaxFee">): SolanaRpc | undefined;
+    /**
      * Creates a new solana read-only wallet account.
      *
      * @param {string} addr - The account's address.
