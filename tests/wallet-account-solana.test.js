@@ -27,6 +27,7 @@ import { getCompiledTransactionMessageDecoder } from '@solana/transaction-messag
 import { signTransactionMessageWithSigners } from '@solana/signers'
 import { getBase64EncodedWireTransaction } from '@solana/transactions'
 import { getBase64Decoder } from '@solana/codecs'
+import { DisposalError } from '@tetherto/wdk-wallet'
 import WalletManagerSolana from '../src/wallet-manager-solana.js'
 import WalletAccountSolana from '../src/wallet-account-solana.js'
 import WalletAccountReadOnlySolana from '../src/wallet-account-read-only-solana.js'
@@ -258,6 +259,21 @@ describe('WalletAccountSolana', () => {
 
         expect(publicKeyAfter).toBeDefined()
       })
+
+      it('should expose the disposed state and be idempotent', async () => {
+        const tempWallet = new WalletManagerSolana(TEST_SEED_PHRASE, {
+          provider: TEST_RPC_URL,
+          commitment: 'confirmed'
+        })
+        const tempAccount = await tempWallet.getAccount(97)
+
+        expect(tempAccount.disposed).toBe(false)
+
+        tempAccount.dispose()
+
+        expect(tempAccount.disposed).toBe(true)
+        expect(() => tempAccount.dispose()).not.toThrow()
+      })
     })
   })
 
@@ -351,7 +367,7 @@ describe('WalletAccountSolana', () => {
 
         await expect(
           tempAccount.sendTransaction({ to: 'DummyAddress', value: 1000n })
-        ).rejects.toThrow('The wallet account has been disposed.')
+        ).rejects.toThrow(DisposalError)
       })
     })
 
@@ -1015,7 +1031,7 @@ describe('WalletAccountSolana', () => {
             recipient: 'FzFRHEc1tWLGa2doGw2KAKrfNrBH3QwGTnjm37o2HQGb',
             amount: 1000n
           })
-        ).rejects.toThrow('The wallet account has been disposed.')
+        ).rejects.toThrow(DisposalError)
       })
 
       it('should throw if amount exceeds u64 maximum', async () => {

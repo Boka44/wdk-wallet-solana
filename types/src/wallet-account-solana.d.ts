@@ -47,6 +47,14 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @type {Uint8Array | undefined}
      */
     private _rawPrivateKey;
+    /** @private */
+    private _disposed;
+    /**
+     * True if the account has been disposed.
+     *
+     * @type {boolean}
+     */
+    get disposed(): boolean;
     /**
      * The derivation path's index of this account.
      *
@@ -74,6 +82,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      *
      * @param {string} message - The message to sign.
      * @returns {Promise<string>} The message's signature.
+     * @throws {DisposalError} If the account has been disposed.
      */
     sign(message: string): Promise<string>;
     /**
@@ -82,6 +91,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @param {SolanaTransaction} tx - The transaction to sign: an unsigned transaction or a base64-encoded serialized transaction.
      * @returns {Promise<FullySignedTransaction>} The signed transaction.
      * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
+     * @throws {DisposalError} If the account has been disposed.
      */
     signTransaction(tx: SolanaTransaction): Promise<FullySignedTransaction>;
     /**
@@ -97,6 +107,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction, an already-signed transaction, or a base64-encoded serialized transaction.
      * @returns {Promise<TransactionResult>} The transaction's result.
      * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
+     * @throws {DisposalError} If the account has been disposed.
      */
     sendTransaction(tx: SolanaTransaction | FullySignedTransaction): Promise<TransactionResult>;
     /** @private */
@@ -137,6 +148,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana imp
      * @param {TransferOptions} options - The transfer's options.
      * @returns {Promise<TransferResult>} The transfer's result.
      * @throws {Error} If the transfer's cost exceeds the maximum transfer fee option.
+     * @throws {DisposalError} If the account has been disposed.
      * @note only SPL tokens - won't work for native SOL
      */
     transfer(options: TransferOptions): Promise<TransferResult>;

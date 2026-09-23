@@ -39,6 +39,8 @@ import { sodium_memzero } from 'sodium-universal'
 import * as curve from '@noble/ed25519'
 import { sha512 } from '@noble/hashes/sha2.js'
 
+import { DisposalError } from '@tetherto/wdk-wallet'
+
 import WalletAccountReadOnlySolana from './wallet-account-read-only-solana.js'
 
 // To enable @noble's synchronous methods
@@ -142,6 +144,18 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
      * @type {Uint8Array}
      */
     this._rawPublicKey = publicKey
+
+    /** @private */
+    this._disposed = false
+  }
+
+  /**
+   * True if the account has been disposed.
+   *
+   * @type {boolean}
+   */
+  get disposed () {
+    return this._disposed
   }
 
   /**
@@ -207,10 +221,11 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
    *
    * @param {string} message - The message to sign.
    * @returns {Promise<string>} The message's signature.
+   * @throws {DisposalError} If the account has been disposed.
    */
   async sign (message) {
-    if (!this._rawPrivateKey) {
-      throw new Error('The wallet account has been disposed.')
+    if (this.disposed) {
+      throw new DisposalError('The account has been disposed.')
     }
 
     const signer = await this._getSigner()
@@ -227,10 +242,11 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
    * @param {SolanaTransaction} tx - The transaction to sign: an unsigned transaction or a base64-encoded serialized transaction.
    * @returns {Promise<FullySignedTransaction>} The signed transaction.
    * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
+   * @throws {DisposalError} If the account has been disposed.
    */
   async signTransaction (tx) {
-    if (!this._rawPrivateKey) {
-      throw new Error('The wallet account has been disposed.')
+    if (this.disposed) {
+      throw new DisposalError('The account has been disposed.')
     }
 
     if (!this._rpc) {
@@ -292,10 +308,11 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
    * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction, an already-signed transaction, or a base64-encoded serialized transaction.
    * @returns {Promise<TransactionResult>} The transaction's result.
    * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
+   * @throws {DisposalError} If the account has been disposed.
    */
   async sendTransaction (tx) {
-    if (!this._rawPrivateKey) {
-      throw new Error('The wallet account has been disposed.')
+    if (this.disposed) {
+      throw new DisposalError('The account has been disposed.')
     }
 
     if (!this._rpc) {
@@ -422,11 +439,12 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
    * @param {TransferOptions} options - The transfer's options.
    * @returns {Promise<TransferResult>} The transfer's result.
    * @throws {Error} If the transfer's cost exceeds the maximum transfer fee option.
+   * @throws {DisposalError} If the account has been disposed.
    * @note only SPL tokens - won't work for native SOL
    */
   async transfer (options) {
-    if (!this._rawPrivateKey) {
-      throw new Error('The wallet account has been disposed.')
+    if (this.disposed) {
+      throw new DisposalError('The account has been disposed.')
     }
 
     if (!this._rpc) {
@@ -465,10 +483,14 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
    * Disposes the wallet account, erasing the private key from the memory.
    */
   dispose () {
+    if (this._disposed) return
+
     sodium_memzero(this._rawPrivateKey)
     this._rawPrivateKey = undefined
     this._signer = undefined
     this._seed = undefined
+
+    this._disposed = true
   }
 
   /**
