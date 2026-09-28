@@ -14,7 +14,7 @@
 
 'use strict'
 
-import WalletManager from '@tetherto/wdk-wallet'
+import WalletManager, { ProviderRequiredError } from '@tetherto/wdk-wallet'
 
 import WalletAccountSolana from './wallet-account-solana.js'
 
@@ -35,7 +35,7 @@ export default class WalletManagerSolana extends WalletManager {
   /**
    * Creates a new wallet manager for the solana blockchain.
    *
-   * @param {string | Uint8Array} seed - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
+   * @param {string | Uint8Array} seed - A [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) mnemonic seed phrase, or a raw BIP-32 master seed (16-64 bytes).
    * @param {SolanaWalletConfig} [config] - The configuration object.
    */
   constructor (seed, config = {}) {
@@ -116,10 +116,11 @@ export default class WalletManagerSolana extends WalletManager {
    * Returns the current fee rates.
    *
    * @returns {Promise<FeeRates>} The fee rates (in lamports).
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    */
   async getFeeRates () {
     if (!this._rpc) {
-      throw new Error('The wallet must be connected to a provider to get fee rates.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to get fee rates.')
     }
 
     const fees = await this._rpc.getRecentPrioritizationFees().send()

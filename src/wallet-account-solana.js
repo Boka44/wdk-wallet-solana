@@ -39,19 +39,25 @@ import { sodium_memzero } from 'sodium-universal'
 import * as curve from '@noble/ed25519'
 import { sha512 } from '@noble/hashes/sha2.js'
 
-import { DisposalError } from '@tetherto/wdk-wallet'
+import { DisposalError, MaximumFeeExceededError, ProviderRequiredError, ValueError } from '@tetherto/wdk-wallet'
 
 import WalletAccountReadOnlySolana from './wallet-account-read-only-solana.js'
 
 // To enable @noble's synchronous methods
 curve.hashes.sha512 = sha512
 
-/** @typedef {import("@tetherto/wdk-wallet").IWalletAccount} IWalletAccount */
+/**
+ * @template TSignedTransaction
+ * @typedef {import('@tetherto/wdk-wallet').IWalletAccount<TSignedTransaction>} IWalletAccount
+ */
 /** @typedef {import('@tetherto/wdk-wallet').KeyPair} KeyPair */
 /** @typedef {import('@tetherto/wdk-wallet').TransactionResult} TransactionResult */
 /** @typedef {import('@tetherto/wdk-wallet').TransferOptions} TransferOptions */
 /** @typedef {import('@tetherto/wdk-wallet').TransferResult} TransferResult */
 
+/** @typedef {import('./wallet-account-read-only-solana.js').SolanaTransferOptions} SolanaTransferOptions */
+
+/** @typedef {import('@solana/errors').SolanaError} SolanaError */
 /** @typedef {import('@solana/signers').KeyPairSigner} KeyPairSigner */
 
 /** @typedef {import('./wallet-account-read-only-solana.js').SolanaTransaction} SolanaTransaction */
@@ -64,12 +70,13 @@ const SLIP_0010_SOL_DERIVATION_PATH_PREFIX = "m/44'/501'"
 /**
  * Assert the full path is hardened.
  * @param {string} path The derivation path.
+ * @throws {ValueError} If any child path is not hardened.
  */
 function assertFullHardenedPath (path) {
   const isValid = path.split('/').reduce((s, e) => s && e.endsWith("'"), true)
 
   if (!isValid) {
-    throw new Error('In Solana, every child path in a derivation path must be hardened.')
+    throw new ValueError('In Solana, every child path in a derivation path must be hardened.')
   }
 }
 
@@ -78,14 +85,15 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
   /**
    * Creates a new solana wallet account.
    *
-   * @param {string | Uint8Array} seed - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
+   * @param {string | Uint8Array} seed - A [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) mnemonic seed phrase, or a raw BIP-32 master seed (16-64 bytes).
    * @param {string} path - The SLIP-0010 derivation path (e.g. "0'/0'/0'").
    * @param {SolanaWalletConfig} [config] - The configuration object.
+   * @throws {ValueError} If the seed phrase is not a valid BIP-39 seed phrase.
    */
   constructor (seed, path, config = {}) {
     if (typeof seed === 'string') {
       if (!bip39.validateMnemonic(seed)) {
-        throw new Error('The seed phrase is invalid.')
+        throw new ValueError('The seed phrase is invalid.')
       }
 
       seed = bip39.mnemonicToSeedSync(seed)
@@ -162,7 +170,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
    * Creates a new solana wallet account.
    *
    * @deprecated
-   * @param {string | Uint8Array} seed - The wallet's [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) seed phrase.
+   * @param {string | Uint8Array} seed - A [BIP-39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki) mnemonic seed phrase, or a raw BIP-32 master seed (16-64 bytes).
    * @param {string} path - The SLIP-0010 derivation path (e.g. "0'/0'/0'").
    * @param {SolanaWalletConfig} [config] - The configuration object.
    * @returns {Promise<WalletAccountSolana>} The wallet account.
@@ -241,8 +249,9 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
    *
    * @param {SolanaTransaction} tx - The transaction to sign: an unsigned transaction or a base64-encoded serialized transaction.
    * @returns {Promise<FullySignedTransaction>} The signed transaction.
-   * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
    * @throws {DisposalError} If the account has been disposed.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   * @throws {MaximumFeeExceededError} If the transaction's cost exceeds the maximum transaction fee option.
    */
   async signTransaction (tx) {
     if (this.disposed) {
@@ -250,7 +259,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
     }
 
     if (!this._rpc) {
-      throw new Error('The wallet must be connected to a provider to sign transactions.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to sign transactions.')
     }
 
     if (typeof tx === 'string') {
@@ -259,7 +268,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
       if (this._config.transactionMaxFee !== undefined) {
         const fee = await this._getSignedTransactionFee(transaction)
         if (fee > this._config.transactionMaxFee) {
-          throw new Error('Exceeded maximum fee cost for transaction operation.')
+          throw new MaximumFeeExceededError('Exceeded maximum fee cost for transaction operation.')
         }
       }
 
@@ -271,7 +280,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
     if (this._config.transactionMaxFee !== undefined) {
       const fee = await this._getTransactionFee(transactionMessage)
       if (fee > this._config.transactionMaxFee) {
-        throw new Error('Exceeded maximum fee cost for transaction operation.')
+        throw new MaximumFeeExceededError('Exceeded maximum fee cost for transaction operation.')
       }
     }
 
@@ -283,6 +292,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
    *
    * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction, an already-signed transaction, or a base64-encoded serialized transaction.
    * @returns {Promise<Omit<TransactionResult, 'hash'>>} The transaction's quotes.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
    */
   async quoteSendTransaction (tx) {
     if (typeof tx === 'string') {
@@ -291,7 +301,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
 
     if (this._isSignedTransaction(tx)) {
       if (!this._rpc) {
-        throw new Error('The wallet must be connected to a provider to quote transactions.')
+        throw new ProviderRequiredError('The wallet must be connected to a provider to quote transactions.')
       }
 
       const fee = await this._getSignedTransactionFee(tx)
@@ -307,8 +317,9 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
    *
    * @param {SolanaTransaction | FullySignedTransaction} tx - The transaction. Either an unsigned transaction, an already-signed transaction, or a base64-encoded serialized transaction.
    * @returns {Promise<TransactionResult>} The transaction's result.
-   * @throws {Error} If the transaction's cost exceeds the maximum transaction fee option.
    * @throws {DisposalError} If the account has been disposed.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   * @throws {MaximumFeeExceededError} If the transaction's cost exceeds the maximum transaction fee option.
    */
   async sendTransaction (tx) {
     if (this.disposed) {
@@ -316,7 +327,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
     }
 
     if (!this._rpc) {
-      throw new Error('The wallet must be connected to a provider to send transactions.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to send transactions.')
     }
 
     if (typeof tx === 'string') {
@@ -327,7 +338,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
       const { fee } = await this.quoteSendTransaction(tx)
 
       if (this._config.transactionMaxFee !== undefined && fee > this._config.transactionMaxFee) {
-        throw new Error('Exceeded maximum fee cost for transaction operation.')
+        throw new MaximumFeeExceededError('Exceeded maximum fee cost for transaction operation.')
       }
 
       const hash = await this._broadcastSignedTransaction(tx)
@@ -340,7 +351,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
     const fee = await this._getTransactionFee(transactionMessage)
 
     if (this._config.transactionMaxFee !== undefined && fee > this._config.transactionMaxFee) {
-      throw new Error('Exceeded maximum fee cost for transaction operation.')
+      throw new MaximumFeeExceededError('Exceeded maximum fee cost for transaction operation.')
     }
 
     const hash = await this._sendTransactionMessage(transactionMessage)
@@ -382,8 +393,8 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
    * @protected
    * @param {string} serializedTransaction - The base64-encoded serialized transaction.
    * @returns {Promise<FullySignedTransaction>} The signed transaction.
-   * @throws {Error} If the transaction's fee payer is not the account, or if the
-   *   transaction still misses signatures the account cannot provide.
+   * @throws {ValueError} If the transaction's fee payer is not the account.
+   * @throws {SolanaError} With code `SOLANA_ERROR__TRANSACTION__SIGNATURES_MISSING` if the transaction still misses signatures the account cannot provide.
    */
   async _signSerializedTransaction (serializedTransaction) {
     const transaction = this._decodeSerializedTransaction(serializedTransaction)
@@ -391,7 +402,7 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
     const { staticAccounts } = getCompiledTransactionMessageDecoder().decode(transaction.messageBytes)
     const ownerAddress = await this.getAddress()
     if (staticAccounts[0] !== ownerAddress) {
-      throw new Error(`Transaction fee payer (${staticAccounts[0]}) does not match wallet address (${ownerAddress})`)
+      throw new ValueError(`Transaction fee payer (${staticAccounts[0]}) does not match wallet address (${ownerAddress})`)
     }
 
     const signer = await this._getSigner()
@@ -437,26 +448,28 @@ export default class WalletAccountSolana extends WalletAccountReadOnlySolana {
    * Transfers a token to another address.
    *
    * @param {TransferOptions} options - The transfer's options.
+   * @param {SolanaTransferOptions} [solanaOptions] - The transfer's Solana-specific options.
    * @returns {Promise<TransferResult>} The transfer's result.
-   * @throws {Error} If the transfer's cost exceeds the maximum transfer fee option.
    * @throws {DisposalError} If the account has been disposed.
+   * @throws {ProviderRequiredError} If the wallet is not connected to a provider.
+   * @throws {MaximumFeeExceededError} If the transfer's cost exceeds the maximum transfer fee option.
    * @note only SPL tokens - won't work for native SOL
    */
-  async transfer (options) {
+  async transfer (options, solanaOptions = {}) {
     if (this.disposed) {
       throw new DisposalError('The account has been disposed.')
     }
 
     if (!this._rpc) {
-      throw new Error('The wallet must be connected to a provider to transfer tokens.')
+      throw new ProviderRequiredError('The wallet must be connected to a provider to transfer tokens.')
     }
 
     const { token, recipient, amount } = options
 
-    const transactionMessage = await this._buildSPLTransferTransactionMessage(token, recipient, amount)
+    const transactionMessage = await this._buildSPLTransferTransactionMessage(token, recipient, amount, solanaOptions)
     const fee = await this._getTransactionFee(transactionMessage)
     if (this._config.transferMaxFee !== undefined && fee > this._config.transferMaxFee) {
-      throw new Error('Exceeded maximum fee cost for transfer operation.')
+      throw new MaximumFeeExceededError('Exceeded maximum fee cost for transfer operation.')
     }
 
     const preparedMessage = await this._prepareTransactionMessage(transactionMessage)
