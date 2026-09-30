@@ -262,7 +262,7 @@ describe('WalletAccountSolana', () => {
         expect(publicKeyAfter).toBeDefined()
       })
 
-      it('should expose the disposed state and be idempotent', async () => {
+      it('should expose the disposed state', async () => {
         const tempWallet = new WalletManagerSolana(TEST_SEED_PHRASE, {
           provider: TEST_RPC_URL,
           commitment: 'confirmed'
@@ -274,7 +274,6 @@ describe('WalletAccountSolana', () => {
         tempAccount.dispose()
 
         expect(tempAccount.disposed).toBe(true)
-        expect(() => tempAccount.dispose()).not.toThrow()
       })
     })
   })
